@@ -1,5 +1,38 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>Hola Mundo</h1>
+<div class="container py-5">
+    {% if user.is_authenticated %}
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h3 class="text-center mb-4">Hola te amo</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <h1 class="text-center mb-4">Ingrese al sistema</h1>
+                        <form method="post" action="{% url 'home' %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Nombre de usuario</label>
+                                <input type="text" class="form-control" name="username"placeholder="Nombre de usuario" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Contraseña</label>
+                                <input type="password" class="form-control" name="password"placeholder="Contraseña" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Guardar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
 {% endblock %}
-
