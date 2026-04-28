@@ -1,19 +1,54 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="{% url 'home' %}">Django CMR</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+{% load static %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+  <div class="container">
+    <!-- Brand -->
+    <a href="{% url 'home' %}" class="navbar-brand d-flex align-items-center">
+      <span class="fs-3 me-2">📦</span>
+      <span class="fw-bold font-monospace">InvManager</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-
-
-        <li class="nav-item">
-          <a class="nav-link" href="#">Link</a>
-        </li>
+    
+    <div class="collapse navbar-collapse" id="navbarText">
+      <!-- Links -->
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-medium">
+        {% if user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="{% url 'home' %}">🏠 Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">📋 Inventario</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">📊 Reportes</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">⚙️ Config</a>
+          </li>
+        {% endif %}
       </ul>
 
-
+      <!-- Actions -->
+      <div class="d-flex align-items-center">
+        {% if user.is_authenticated %}
+          <span class="navbar-text me-4 d-flex align-items-center text-white">
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px;">
+              {{ user.username|first|upper }}
+            </div>
+            {{ user.username }}
+          </span>
+          <a href="{% url 'logout' %}" class="btn btn-outline-danger fw-semibold rounded-pill px-3 shadow-sm transition">
+            🚪 Cerrar sesión
+          </a>
+        {% else %}
+          <span class="navbar-text small text-muted">
+            Sistema de gestión <span class="badge bg-secondary ms-1 shadow-sm">v2.0</span>
+          </span>
+        {% endif %}
+      </div>
     </div>
+
   </div>
 </nav>
