@@ -24,19 +24,14 @@
           <p class="card-text text-secondary fw-semibold">Productos en Inventario</p>
         </div>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-4" style="margin-left: 435px;">
+        <a href="{% url 'reportes' %}" class="text-decoration-none">
         <div class="card h-100 shadow-lg border-0 rounded-4 text-center p-4 bg-dark-subtle transition-transform hover-scale">
           <div class="display-3 mb-3">🗂️</div>
-          <h4 class="card-title fw-bold text-warning">0</h4>
-          <p class="card-text text-secondary fw-semibold">Reportes (Por agregar)</p>
+          <h4 class="card-title fw-bold text-warning">{{ total_categories }}</h4>
+          <p class="card-text text-secondary fw-semibold">Categorías · Ver Reportes →</p>
         </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card h-100 shadow-lg border-0 rounded-4 text-center p-4 bg-dark-subtle transition-transform hover-scale">
-          <div class="display-3 mb-3">✅</div>
-          <h4 class="card-title fw-bold text-success">Óptimo</h4>
-          <p class="card-text text-secondary fw-semibold">Estado del Sistema</p>
-        </div>
+        </a>
       </div>
     </div>
 
@@ -69,7 +64,7 @@
                     <th class="py-3 px-3 fw-medium text-center">Cantidad</th>
                     <th class="py-3 px-3 fw-medium">Registrado por</th>
                     <th class="py-3 px-3 fw-medium">Fecha</th>
-                    <th class="py-3 px-4 fw-medium text-end">Acción</th>
+                    <th class="py-3 px-4 fw-medium text-end">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -82,6 +77,9 @@
                       <td class="py-3 px-3 text-secondary">{{ p.user.username }}</td>
                       <td class="py-3 px-3 text-secondary">{{ p.created_at|date:"d M Y, H:i" }}</td>
                       <td class="py-3 px-4 text-end">
+                        <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 shadow-sm transition me-1" data-bs-toggle="modal" data-bs-target="#editProductModal{{ p.pk }}">
+                          ✏️ Editar
+                        </button>
                         <form method="post" action="{% url 'delete_product' p.pk %}" style="display:inline;">
                           {% csrf_token %}
                           <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm transition" onclick="return confirm('¿Seguro que deseas borrar permanentemente este producto del inventario?');">
@@ -103,6 +101,41 @@
         </div>
       </div>
     </div>
+
+    <!-- Modales de Edición (uno por producto) -->
+    {% for p in products %}
+    <div class="modal fade" id="editProductModal{{ p.pk }}" tabindex="-1" aria-labelledby="editProductModalLabel{{ p.pk }}" aria-hidden="true" data-bs-theme="dark">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary-subtle rounded-4 shadow-lg">
+          <div class="modal-header border-secondary-subtle py-3 px-4">
+            <h5 class="modal-title fw-bold" id="editProductModalLabel{{ p.pk }}">✏️ Editar Producto</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form method="post" action="{% url 'edit_product' p.pk %}">
+            {% csrf_token %}
+            <div class="modal-body px-4 py-4">
+                <div class="mb-3">
+                  <label class="form-label text-secondary fw-semibold">Nombre del Producto</label>
+                  <input type="text" name="name" class="form-control bg-dark text-white border-secondary-subtle shadow-sm" required value="{{ p.name }}">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-secondary fw-semibold">Categoría</label>
+                  <input type="text" name="category" class="form-control bg-dark text-white border-secondary-subtle shadow-sm" required value="{{ p.category }}">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-secondary fw-semibold">Cantidad en Stock</label>
+                  <input type="number" name="quantity" class="form-control bg-dark text-white border-secondary-subtle shadow-sm" required min="0" value="{{ p.quantity }}">
+                </div>
+            </div>
+            <div class="modal-footer border-secondary-subtle py-3 px-4">
+              <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-warning rounded-pill px-4 shadow fw-semibold">💾 Guardar Cambios</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
 
     <!-- Modal Nuevo Registro -->
     <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true" data-bs-theme="dark">

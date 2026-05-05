@@ -4,7 +4,7 @@
     <!-- Brand -->
     <a href="{% url 'home' %}" class="navbar-brand d-flex align-items-center">
       <span class="fs-3 me-2">📦</span>
-      <span class="fw-bold font-monospace">InvManager</span>
+      <span class="fw-bold font-monospace">Sistema de Inventario</span>
     </a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
@@ -16,16 +16,10 @@
       <ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-medium">
         {% if user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{% url 'home' %}">🏠 Dashboard</a>
+            <a class="nav-link" href="{% url 'home' %}">📋 Inventario</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">📋 Inventario</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">📊 Reportes</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="#">⚙️ Config</a>
+            <a class="nav-link" href="{% url 'reportes' %}">📊 Reportes</a>
           </li>
         {% endif %}
       </ul>
@@ -42,10 +36,6 @@
           <a href="{% url 'logout' %}" class="btn btn-outline-danger fw-semibold rounded-pill px-3 shadow-sm transition">
             🚪 Cerrar sesión
           </a>
-        {% else %}
-          <span class="navbar-text small text-muted">
-            Sistema de gestión <span class="badge bg-secondary ms-1 shadow-sm">v2.0</span>
-          </span>
         {% endif %}
       </div>
     </div>
