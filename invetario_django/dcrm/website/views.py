@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import Product
+from .forms import SignUpForm
 from django.db.models import Sum, Count
 from django.http import HttpResponse
 from django.utils import timezone
@@ -44,6 +45,31 @@ def logout_user(request):
     logout(request)
     messages.success(request, "Sesión cerrada correctamente.")
     return redirect('home')
+
+
+def register_user(request):
+    """Vista de registro de nuevos usuarios usando SignUpForm."""
+    if request.user.is_authenticated:
+        return redirect('home')
+
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            form.save()  # guarda el nuevo usuario en la base de datos
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password1')
+            # autenticar e iniciar sesión automáticamente
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                messages.success(request, f"¡Bienvenido {username}! Tu cuenta ha sido creada correctamente.")
+                return redirect('home')
+        else:
+            messages.error(request, "Error en el formulario. Verifica los datos ingresados.")
+    else:
+        form = SignUpForm()
+
+    return render(request, 'register.html', {'form': form})
 
 @login_required
 def add_product(request):

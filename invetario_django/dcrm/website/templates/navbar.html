@@ -4,7 +4,7 @@
     <!-- Brand -->
     <a href="{% url 'home' %}" class="navbar-brand d-flex align-items-center">
       <span class="fs-3 me-2">📦</span>
-      <span class="fw-bold font-monospace">Sistema de Inventario</span>
+      <span class="fw-bolder fst-normal fs-5">Sistema de Inventario</span>
     </a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
@@ -16,25 +16,29 @@
       <ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-medium">
         {% if user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'home' %}">📋 Inventario</a>
+            <a class="nav-link" href="{% url 'home' %}">Inventario</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'reportes' %}">📊 Reportes</a>
+            <a class="nav-link" href="{% url 'reportes' %}">Reportes</a>
           </li>
         {% endif %}
       </ul>
 
       <!-- Actions -->
-      <div class="d-flex align-items-center">
+      <div class="d-flex align-items-center gap-2">
         {% if user.is_authenticated %}
-          <span class="navbar-text me-4 d-flex align-items-center text-white">
+          <span class="navbar-text me-2 d-flex align-items-center text-white">
             <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px;">
               {{ user.username|first|upper }}
             </div>
             {{ user.username }}
           </span>
           <a href="{% url 'logout' %}" class="btn btn-outline-danger fw-semibold rounded-pill px-3 shadow-sm transition">
-            🚪 Cerrar sesión
+            Cerrar sesión
+          </a>
+        {% else %}
+          <a href="{% url 'register' %}" class="btn btn-primary fw-semibold rounded-pill px-3 shadow-sm" id="btn-navbar-register">
+            Registrarse
           </a>
         {% endif %}
       </div>

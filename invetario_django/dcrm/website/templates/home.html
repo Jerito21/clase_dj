@@ -6,8 +6,8 @@
     <!-- DASHBOARD -->
     <div class="row mb-5 align-items-center">
       <div class="col-12 col-md-8 text-center text-md-start">
-        <h2 class="fw-bold mb-1">👋 Bienvenido, {{ user.username }}</h2>
-        <p class="text-secondary fs-5 mb-0">Tienes acceso completo al sistema. Todo está bajo control.</p>
+        <h2 class="fw-bold mb-1">Bienvenido, {{ user.username }}</h2>
+        <p class="text-secondary fs-5 mb-0">Tienes acceso completo al sistema.</p>
       </div>
       <div class="col-12 col-md-4 text-center text-md-end mt-3 mt-md-0">
         <a href="#" class="btn btn-primary fw-medium rounded-pill px-4 shadow" data-bs-toggle="modal" data-bs-target="#addProductModal">➕ Nuevo Registro</a>
@@ -52,7 +52,7 @@
       <div class="col-12">
         <div class="card shadow-lg border-0 rounded-4 bg-dark-subtle p-0 overflow-hidden">
           <div class="card-header bg-transparent border-secondary-subtle py-3 px-4 d-flex justify-content-between align-items-center">
-            <h5 class="fw-semibold mb-0">⚡ Inventario Actual</h5>
+            <h5 class="fw-semibold mb-0">Inventario Actual</h5>
           </div>
           <div class="card-body p-0">
             <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
@@ -242,7 +242,12 @@
           </form>
 
           <div class="text-center mt-4">
-            <p class="text-secondary small mb-0">InvManager v2.0 &middot; {{ "now"|date:"Y" }}</p>
+            <p class="text-secondary small mb-2">Sistema de Control de Inventario &middot; {{ "now"|date:"Y" }}</p>
+            <p class="mb-0">
+              <a href="{% url 'register' %}" class="text-decoration-none fw-semibold" style="color: #6d9eeb;">
+                ¿No tienes cuenta? Regístrate aquí
+              </a>
+            </p>
           </div>
         </div>
       </div>
