@@ -1,25 +1,39 @@
 {% load static %}
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background: linear-gradient(90deg,#0f172a 0%,#1e293b 100%); border-bottom: 1px solid rgba(255,255,255,0.07);">
   <div class="container">
     <!-- Brand -->
-    <a href="{% url 'home' %}" class="navbar-brand d-flex align-items-center">
+    <a href="{% url 'home' %}" class="navbar-brand d-flex align-items-center spa-brand" data-spa-section="inventario">
       <span class="fs-3 me-2">📦</span>
-      <span class="fw-bolder fst-normal fs-5">Sistema de Inventario</span>
+      <span class="fw-bolder fst-normal fs-5" style="background: linear-gradient(90deg,#818cf8,#38bdf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">
+        Sistema de Inventario
+      </span>
     </a>
 
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+            data-bs-target="#navbarMain" aria-controls="navbarMain"
+            aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
-    
-    <div class="collapse navbar-collapse" id="navbarText">
-      <!-- Links -->
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-medium">
+
+    <div class="collapse navbar-collapse" id="navbarMain">
+      <!-- SPA Links (solo visibles si está autenticado) -->
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-medium" id="spa-nav-links">
         {% if user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'home' %}">Inventario</a>
+            <a class="nav-link spa-link px-3 py-2 rounded-3 mx-1 active"
+               id="nav-inventario"
+               href="#"
+               data-spa-section="inventario">
+              <span class="me-1">📦</span> Inventario
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'reportes' %}">Reportes</a>
+            <a class="nav-link spa-link px-3 py-2 rounded-3 mx-1"
+               id="nav-reportes"
+               href="#"
+               data-spa-section="reportes">
+              <span class="me-1">📊</span> Reportes
+            </a>
           </li>
         {% endif %}
       </ul>
@@ -28,21 +42,39 @@
       <div class="d-flex align-items-center gap-2">
         {% if user.is_authenticated %}
           <span class="navbar-text me-2 d-flex align-items-center text-white">
-            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px;">
+            <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-2 fw-bold"
+                 style="width:34px;height:34px;font-size:0.85rem;background:linear-gradient(135deg,#6366f1,#38bdf8);">
               {{ user.username|first|upper }}
             </div>
-            {{ user.username }}
+            <span class="d-none d-md-inline text-secondary small">{{ user.username }}</span>
           </span>
-          <a href="{% url 'logout' %}" class="btn btn-outline-danger fw-semibold rounded-pill px-3 shadow-sm transition">
+          <a href="{% url 'logout' %}" class="btn btn-outline-danger fw-semibold rounded-pill px-3 shadow-sm" style="font-size:0.85rem;">
             Cerrar sesión
           </a>
         {% else %}
-          <a href="{% url 'register' %}" class="btn btn-primary fw-semibold rounded-pill px-3 shadow-sm" id="btn-navbar-register">
+          <a href="{% url 'register' %}" class="btn fw-semibold rounded-pill px-4 shadow-sm text-white"
+             style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;" id="btn-navbar-register">
             Registrarse
           </a>
         {% endif %}
       </div>
     </div>
-
   </div>
 </nav>
+
+<style>
+  .spa-link {
+    color: rgba(255,255,255,0.65) !important;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+  }
+  .spa-link:hover {
+    color: #fff !important;
+    background: rgba(255,255,255,0.08) !important;
+  }
+  .spa-link.active {
+    color: #fff !important;
+    background: rgba(99,102,241,0.25) !important;
+    border-left: 3px solid #818cf8;
+  }
+</style>

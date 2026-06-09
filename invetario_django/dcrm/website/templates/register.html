@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-<div class="min-vh-100 d-flex align-items-center justify-content-center py-5" 
+<div class="min-vh-100 d-flex align-items-center justify-content-center py-5"
      style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);">
 
   <div class="container">
@@ -11,17 +11,17 @@
 
         <!-- Card principal -->
         <div class="card border-0 shadow-lg rounded-4 overflow-hidden"
-             style="background: rgba(30,41,59,0.95); backdrop-filter: blur(12px);">
+             style="background: rgba(30,41,59,0.97); backdrop-filter: blur(14px);">
 
           <!-- Encabezado -->
           <div class="card-header border-0 text-center py-4"
                style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
             <div class="mb-2 fs-1">📦</div>
             <h1 class="h4 text-white fw-bold mb-1">Crear Cuenta</h1>
-            <p class="text-white-50 small mb-0">Completa los datos para registrarte</p>
+            <p class="text-white-50 small mb-0">Completa los datos para registrarte en el sistema</p>
           </div>
 
-          <!-- Mensajes -->
+          <!-- Mensajes del servidor -->
           <div class="px-4 pt-3">
             {% if messages %}
               {% for message in messages %}
@@ -42,147 +42,342 @@
 
           <!-- Formulario -->
           <div class="card-body px-4 pb-4 pt-2">
-            <form method="POST" action="{% url 'register' %}" novalidate>
+            <form method="POST" action="{% url 'register' %}" id="register-form" novalidate>
               {% csrf_token %}
 
               <!-- Nombre de usuario -->
               <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Nombre de usuario</label>
-                <input
-                  type="text"
-                  name="username"
-                  id="id_username"
-                  class="form-control form-control-lg rounded-3 border-0 {% if form.username.errors %}is-invalid{% endif %}"
-                  placeholder="{{ form.username.widget.attrs.placeholder|default:'nombre usuario' }}"
-                  value="{{ form.username.value|default:'' }}"
-                  style="background: rgba(15,23,42,0.6); color: #e2e8f0;"
-                >
-                {% if form.username.errors %}
-                  <div class="invalid-feedback">{{ form.username.errors|join:", " }}</div>
-                {% endif %}
+                <label class="form-label text-secondary small fw-semibold" for="id_username">
+                  Nombre de usuario <span class="text-danger">*</span>
+                </label>
+                <input type="text" name="username" id="id_username"
+                       class="form-control form-control-lg rounded-3 border-0 {% if form.username.errors %}is-invalid{% endif %}"
+                       placeholder="nombre_usuario"
+                       value="{{ form.username.value|default:'' }}"
+                       pattern="[\w.@+\-]+"
+                       title="Solo letras, números y @/./+/-/_. Sin espacios."
+                       maxlength="150" required
+                       style="background: rgba(15,23,42,0.7); color: #e2e8f0;"
+                       autocomplete="username">
+                <div class="invalid-feedback" id="fb-username">
+                  {% if form.username.errors %}{{ form.username.errors|join:", " }}{% endif %}
+                </div>
+                <div class="valid-feedback">¡Nombre de usuario disponible!</div>
+                <div class="form-text text-muted" style="font-size:0.75rem;">
+                  Máx. 150 caracteres. Solo letras, números y @/./+/-/_
+                </div>
               </div>
 
-              <!-- Nombre y Apellido en fila -->
+              <!-- Nombre y Apellido -->
               <div class="row g-3 mb-3">
                 <div class="col-6">
-                  <label class="form-label text-secondary small fw-semibold">Nombre</label>
-                  <input
-                    type="text"
-                    name="first_name"
-                    id="id_first_name"
-                    class="form-control rounded-3 border-0 {% if form.first_name.errors %}is-invalid{% endif %}"
-                    placeholder="Nombre"
-                    value="{{ form.first_name.value|default:'' }}"
-                    style="background: rgba(15,23,42,0.6); color: #e2e8f0;"
-                  >
-                  {% if form.first_name.errors %}
-                    <div class="invalid-feedback">{{ form.first_name.errors|join:", " }}</div>
-                  {% endif %}
+                  <label class="form-label text-secondary small fw-semibold" for="id_first_name">
+                    Nombre <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" name="first_name" id="id_first_name"
+                         class="form-control rounded-3 border-0 {% if form.first_name.errors %}is-invalid{% endif %}"
+                         placeholder="Nombre"
+                         value="{{ form.first_name.value|default:'' }}"
+                         pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+"
+                         title="Solo letras y espacios. Sin números."
+                         maxlength="30" required
+                         style="background: rgba(15,23,42,0.7); color: #e2e8f0;"
+                         autocomplete="given-name">
+                  <div class="invalid-feedback" id="fb-first-name">
+                    {% if form.first_name.errors %}{{ form.first_name.errors|join:", " }}{% endif %}
+                  </div>
+                  <div class="valid-feedback">¡Correcto!</div>
                 </div>
                 <div class="col-6">
-                  <label class="form-label text-secondary small fw-semibold">Apellido</label>
-                  <input
-                    type="text"
-                    name="last_name"
-                    id="id_last_name"
-                    class="form-control rounded-3 border-0 {% if form.last_name.errors %}is-invalid{% endif %}"
-                    placeholder="Apellido"
-                    value="{{ form.last_name.value|default:'' }}"
-                    style="background: rgba(15,23,42,0.6); color: #e2e8f0;"
-                  >
-                  {% if form.last_name.errors %}
-                    <div class="invalid-feedback">{{ form.last_name.errors|join:", " }}</div>
-                  {% endif %}
+                  <label class="form-label text-secondary small fw-semibold" for="id_last_name">
+                    Apellido <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" name="last_name" id="id_last_name"
+                         class="form-control rounded-3 border-0 {% if form.last_name.errors %}is-invalid{% endif %}"
+                         placeholder="Apellido"
+                         value="{{ form.last_name.value|default:'' }}"
+                         pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+"
+                         title="Solo letras y espacios. Sin números."
+                         maxlength="30" required
+                         style="background: rgba(15,23,42,0.7); color: #e2e8f0;"
+                         autocomplete="family-name">
+                  <div class="invalid-feedback" id="fb-last-name">
+                    {% if form.last_name.errors %}{{ form.last_name.errors|join:", " }}{% endif %}
+                  </div>
+                  <div class="valid-feedback">¡Correcto!</div>
                 </div>
               </div>
 
               <!-- Correo electrónico -->
               <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Correo electrónico</label>
-                <input
-                  type="email"
-                  name="email"
-                  id="id_email"
-                  class="form-control rounded-3 border-0 {% if form.email.errors %}is-invalid{% endif %}"
-                  placeholder="Correo electrónico"
-                  value="{{ form.email.value|default:'' }}"
-                  style="background: rgba(15,23,42,0.6); color: #e2e8f0;"
-                >
-                {% if form.email.errors %}
-                  <div class="invalid-feedback">{{ form.email.errors|join:", " }}</div>
-                {% endif %}
+                <label class="form-label text-secondary small fw-semibold" for="id_email">
+                  Correo electrónico <span class="text-danger">*</span>
+                </label>
+                <input type="email" name="email" id="id_email"
+                       class="form-control rounded-3 border-0 {% if form.email.errors %}is-invalid{% endif %}"
+                       placeholder="usuario@dominio.com"
+                       value="{{ form.email.value|default:'' }}"
+                       pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                       title="Ingresa un correo válido (ej. usuario@dominio.com)"
+                       required
+                       style="background: rgba(15,23,42,0.7); color: #e2e8f0;"
+                       autocomplete="email">
+                <div class="invalid-feedback" id="fb-email">
+                  {% if form.email.errors %}{{ form.email.errors|join:", " }}{% endif %}
+                </div>
+                <div class="valid-feedback">¡Correo válido!</div>
               </div>
 
               <!-- Contraseña -->
               <div class="mb-3">
-                <label class="form-label text-secondary small fw-semibold">Contraseña</label>
-                <input
-                  type="password"
-                  name="password1"
-                  id="id_password1"
-                  class="form-control rounded-3 border-0 {% if form.password1.errors %}is-invalid{% endif %}"
-                  placeholder="Contraseña"
-                  style="background: rgba(15,23,42,0.6); color: #e2e8f0;"
-                >
-                {% if form.password1.errors %}
-                  <div class="invalid-feedback">{{ form.password1.errors|join:", " }}</div>
-                {% endif %}
+                <label class="form-label text-secondary small fw-semibold" for="id_password1">
+                  Contraseña <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                  <input type="password" name="password1" id="id_password1"
+                         class="form-control rounded-start-3 border-0 {% if form.password1.errors %}is-invalid{% endif %}"
+                         placeholder="Mínimo 8 caracteres"
+                         minlength="8" required
+                         style="background: rgba(15,23,42,0.7); color: #e2e8f0;"
+                         autocomplete="new-password">
+                  <button class="btn border-0 text-secondary" type="button" id="toggle-pw1"
+                          style="background: rgba(15,23,42,0.7);" title="Mostrar/ocultar contraseña">
+                    👁️
+                  </button>
+                </div>
+                <div class="invalid-feedback d-block" id="fb-password1">
+                  {% if form.password1.errors %}{{ form.password1.errors|join:", " }}{% endif %}
+                </div>
+                <!-- Indicador de fortaleza -->
+                <div class="mt-2" id="strength-bar-wrapper" style="display:none;">
+                  <div class="progress rounded-pill" style="height:5px;">
+                    <div id="strength-bar" class="progress-bar rounded-pill" style="width:0%;transition:width 0.3s ease;"></div>
+                  </div>
+                  <span id="strength-label" class="form-text" style="font-size:0.72rem;"></span>
+                </div>
+                <div class="form-text text-muted" style="font-size:0.75rem;">
+                  Mínimo 8 caracteres. No puede ser completamente numérica.
+                </div>
               </div>
 
               <!-- Confirmar contraseña -->
               <div class="mb-4">
-                <label class="form-label text-secondary small fw-semibold">Confirmar contraseña</label>
-                <input
-                  type="password"
-                  name="password2"
-                  id="id_password2"
-                  class="form-control rounded-3 border-0 {% if form.password2.errors %}is-invalid{% endif %}"
-                  placeholder="Repite tu contraseña"
-                  style="background: rgba(15,23,42,0.6); color: #e2e8f0;"
-                >
-                {% if form.password2.errors %}
-                  <div class="invalid-feedback">{{ form.password2.errors|join:", " }}</div>
-                {% endif %}
+                <label class="form-label text-secondary small fw-semibold" for="id_password2">
+                  Confirmar contraseña <span class="text-danger">*</span>
+                </label>
+                <div class="input-group">
+                  <input type="password" name="password2" id="id_password2"
+                         class="form-control rounded-start-3 border-0 {% if form.password2.errors %}is-invalid{% endif %}"
+                         placeholder="Repite tu contraseña"
+                         minlength="8" required
+                         style="background: rgba(15,23,42,0.7); color: #e2e8f0;"
+                         autocomplete="new-password">
+                  <button class="btn border-0 text-secondary" type="button" id="toggle-pw2"
+                          style="background: rgba(15,23,42,0.7);" title="Mostrar/ocultar contraseña">
+                    👁️
+                  </button>
+                </div>
+                <div class="invalid-feedback d-block" id="fb-password2">
+                  {% if form.password2.errors %}{{ form.password2.errors|join:", " }}{% endif %}
+                </div>
+                <div class="valid-feedback d-block" id="fb-password2-valid" style="display:none!important;"></div>
               </div>
 
               <!-- Botón registrar -->
               <div class="d-grid">
-                <button
-                  type="submit"
-                  id="btn-register-submit"
-                  class="btn btn-lg fw-bold rounded-3 text-white"
-                  style="background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; transition: opacity 0.2s;"
-                  onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'"
-                >
+                <button type="submit" id="btn-register-submit"
+                        class="btn btn-lg fw-bold rounded-3 text-white"
+                        style="background: linear-gradient(135deg,#6366f1,#8b5cf6); border:none; transition:opacity 0.2s;"
+                        onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
                   ✅ Crear cuenta
                 </button>
               </div>
 
             </form>
 
-            <!-- Enlace a login -->
             <hr class="border-secondary my-4">
             <p class="text-center text-secondary mb-0 small">
               ¿Ya tienes cuenta?
-              <a href="{% url 'home' %}" class="text-decoration-none fw-semibold" style="color: #818cf8;">
+              <a href="{% url 'home' %}" class="text-decoration-none fw-semibold" style="color:#818cf8;">
                 Iniciar sesión
               </a>
             </p>
           </div>
+        </div><!-- /card -->
 
-        </div>
       </div>
     </div>
   </div>
 </div>
 
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   EXPRESIONES REGULARES – Validación en tiempo real del formulario de registro
+   ══════════════════════════════════════════════════════════════════════════ */
+
+// Reglas con Regex para cada campo
+const registerRules = {
+  'id_username': {
+    regex: /^[\w.@+\-]{1,150}$/,
+    msg: 'Solo letras, números y @/./+/-/_. Sin espacios. Máx. 150 caracteres.',
+    okMsg: '¡Nombre de usuario válido!'
+  },
+  'id_first_name': {
+    regex: /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]{1,30}$/,
+    msg: 'Solo letras y espacios. Sin números ni caracteres especiales.',
+    okMsg: '¡Nombre válido!'
+  },
+  'id_last_name': {
+    regex: /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]{1,30}$/,
+    msg: 'Solo letras y espacios. Sin números ni caracteres especiales.',
+    okMsg: '¡Apellido válido!'
+  },
+  'id_email': {
+    regex: /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/,
+    msg: 'Formato inválido. Ejemplo: usuario@dominio.com',
+    okMsg: '¡Correo válido!'
+  }
+};
+
+function validateRegisterField(input, rule) {
+  const val = input.value.trim();
+  const feedbackId = 'fb-' + input.id.replace('id_', '').replace('_', '-');
+  const feedback = document.getElementById(feedbackId);
+  const validFb  = input.nextElementSibling; // div.valid-feedback (si existe)
+
+  if (!val) {
+    input.classList.add('is-invalid');
+    input.classList.remove('is-valid');
+    if (feedback) feedback.textContent = 'Este campo es obligatorio.';
+    return false;
+  }
+  if (!rule.regex.test(val)) {
+    input.classList.add('is-invalid');
+    input.classList.remove('is-valid');
+    if (feedback) feedback.textContent = rule.msg;
+    return false;
+  }
+  input.classList.remove('is-invalid');
+  input.classList.add('is-valid');
+  if (feedback) feedback.textContent = '';
+  return true;
+}
+
+// Fortaleza de contraseña
+function checkPasswordStrength(password) {
+  let score = 0;
+  if (password.length >= 8)  score++;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^a-zA-Z0-9]/.test(password)) score++;
+  return score;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+
+  // Validación en tiempo real para cada campo con regla
+  Object.keys(registerRules).forEach(id => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.addEventListener('input', () => validateRegisterField(input, registerRules[id]));
+    input.addEventListener('blur',  () => validateRegisterField(input, registerRules[id]));
+  });
+
+  // Indicador de fortaleza de contraseña
+  const pw1 = document.getElementById('id_password1');
+  const strengthBar     = document.getElementById('strength-bar');
+  const strengthLabel   = document.getElementById('strength-label');
+  const strengthWrapper = document.getElementById('strength-bar-wrapper');
+
+  if (pw1) {
+    pw1.addEventListener('input', function () {
+      const val = this.value;
+      if (!val) { strengthWrapper.style.display = 'none'; return; }
+      strengthWrapper.style.display = 'block';
+      const score = checkPasswordStrength(val);
+      const levels = [
+        { label: 'Muy débil', color: '#ef4444', pct: 20 },
+        { label: 'Débil',     color: '#f97316', pct: 40 },
+        { label: 'Regular',   color: '#eab308', pct: 60 },
+        { label: 'Fuerte',    color: '#22c55e', pct: 80 },
+        { label: 'Muy fuerte',color: '#16a34a', pct: 100 },
+      ];
+      const lvl = levels[Math.min(score, 4)];
+      strengthBar.style.width = lvl.pct + '%';
+      strengthBar.style.backgroundColor = lvl.color;
+      strengthLabel.textContent = 'Seguridad: ' + lvl.label;
+      strengthLabel.style.color = lvl.color;
+
+      // Validar longitud mínima
+      const fb1 = document.getElementById('fb-password1');
+      if (val.length < 8) {
+        pw1.classList.add('is-invalid'); pw1.classList.remove('is-valid');
+        if (fb1) fb1.textContent = 'La contraseña debe tener al menos 8 caracteres.';
+      } else if (/^\d+$/.test(val)) {
+        pw1.classList.add('is-invalid'); pw1.classList.remove('is-valid');
+        if (fb1) fb1.textContent = 'La contraseña no puede ser completamente numérica.';
+      } else {
+        pw1.classList.remove('is-invalid'); pw1.classList.add('is-valid');
+        if (fb1) fb1.textContent = '';
+      }
+    });
+  }
+
+  // Validación de confirmación de contraseña
+  const pw2 = document.getElementById('id_password2');
+  const fb2 = document.getElementById('fb-password2');
+  const fb2ok = document.getElementById('fb-password2-valid');
+  if (pw2) {
+    pw2.addEventListener('input', function () {
+      if (pw1 && this.value === pw1.value && pw1.value.length >= 8) {
+        pw2.classList.remove('is-invalid'); pw2.classList.add('is-valid');
+        if (fb2) fb2.textContent = '';
+        if (fb2ok) { fb2ok.textContent = '¡Las contraseñas coinciden!'; fb2ok.style.display = 'block'; }
+      } else {
+        pw2.classList.add('is-invalid'); pw2.classList.remove('is-valid');
+        if (fb2) fb2.textContent = 'Las contraseñas no coinciden.';
+        if (fb2ok) fb2ok.style.display = 'none';
+      }
+    });
+  }
+
+  // Mostrar/ocultar contraseña
+  document.getElementById('toggle-pw1')?.addEventListener('click', () => {
+    pw1.type = pw1.type === 'password' ? 'text' : 'password';
+  });
+  document.getElementById('toggle-pw2')?.addEventListener('click', () => {
+    pw2.type = pw2.type === 'password' ? 'text' : 'password';
+  });
+
+  // Validación completa al enviar
+  document.getElementById('register-form')?.addEventListener('submit', function (e) {
+    let valid = true;
+    Object.keys(registerRules).forEach(id => {
+      const input = document.getElementById(id);
+      if (input && !validateRegisterField(input, registerRules[id])) valid = false;
+    });
+    // Validar contraseñas
+    if (pw1 && pw1.value.length < 8) valid = false;
+    if (pw2 && pw2.value !== pw1?.value) valid = false;
+    if (!valid) { e.preventDefault(); e.stopPropagation(); }
+  });
+});
+</script>
+
 <style>
-  .form-control::placeholder { color: #64748b; }
+  .form-control::placeholder { color: #475569; }
   .form-control:focus {
-    background: rgba(15,23,42,0.8) !important;
+    background: rgba(15,23,42,0.9) !important;
     border-color: #6366f1 !important;
-    box-shadow: 0 0 0 3px rgba(99,102,241,0.25) !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important;
     color: #e2e8f0 !important;
   }
+  .input-group .btn:focus { box-shadow: none; outline: none; }
+  .invalid-feedback { color: #f87171; font-size: 0.78rem; }
+  .valid-feedback   { color: #4ade80; font-size: 0.78rem; }
+  .form-control.is-invalid { border-color: #ef4444 !important; background-image: none !important; }
+  .form-control.is-valid   { border-color: #22c55e !important; background-image: none !important; }
 </style>
+
 {% endblock %}
