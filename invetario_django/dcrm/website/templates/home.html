@@ -28,8 +28,11 @@
 
     <div class="row mb-4 align-items-center">
       <div class="col-12 col-md-8">
-        <h2 class="fw-bold mb-1">Bienvenido, <span style="background:linear-gradient(90deg,#818cf8,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ user.username }}</span> 👋</h2>
-        <p class="text-secondary fs-6 mb-0">Tienes acceso completo al sistema de inventario.</p>
+        <h2 class="fw-bold mb-1">Hola, <span style="background:linear-gradient(90deg,#818cf8,#38bdf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">{{ user.username }}</span> 👋</h2>
+        <p class="text-secondary fs-6 mb-0">
+          <span class="badge rounded-pill me-2 fw-semibold" style="background:rgba(99,102,241,0.18);color:#818cf8;border:1px solid rgba(99,102,241,0.3);font-size:0.75rem;">🔧 Operador</span>
+          Este es tu espacio personal de inventario. Solo ves y gestionas tus propios productos.
+        </p>
       </div>
       <div class="col-12 col-md-4 text-md-end mt-3 mt-md-0">
         <button class="btn fw-semibold rounded-pill px-4 shadow text-white"
@@ -41,20 +44,20 @@
     </div>
 
     <!-- Stat Cards -->
-    <h6 class="fw-semibold mb-3 text-uppercase text-secondary" style="letter-spacing:1px;font-size:0.78rem;">Resumen Rápido</h6>
+    <h6 class="fw-semibold mb-3 text-uppercase text-secondary" style="letter-spacing:1px;font-size:0.78rem;">Mi Resumen</h6>
     <div class="row g-3 mb-5">
       <div class="col-md-4">
         <div class="card h-100 shadow border-0 rounded-4 text-center p-4 bg-dark-subtle hover-scale">
           <div class="display-4 mb-2">📦</div>
           <h4 class="fw-bold text-primary mb-1">{{ total_products }}</h4>
-          <p class="text-secondary fw-semibold small mb-0">Productos en Inventario</p>
+          <p class="text-secondary fw-semibold small mb-0">Mis Productos</p>
         </div>
       </div>
       <div class="col-md-4">
         <div class="card h-100 shadow border-0 rounded-4 text-center p-4 bg-dark-subtle hover-scale">
           <div class="display-4 mb-2">🏷️</div>
           <h4 class="fw-bold text-info mb-1">{{ total_units }}</h4>
-          <p class="text-secondary fw-semibold small mb-0">Unidades Totales</p>
+          <p class="text-secondary fw-semibold small mb-0">Mis Unidades</p>
         </div>
       </div>
       <div class="col-md-4">
@@ -62,7 +65,7 @@
           <div class="card h-100 shadow border-0 rounded-4 text-center p-4 bg-dark-subtle hover-scale">
             <div class="display-4 mb-2">🗂️</div>
             <h4 class="fw-bold text-warning mb-1">{{ total_categories }}</h4>
-            <p class="text-secondary fw-semibold small mb-0">Categorías · Ver Reportes →</p>
+            <p class="text-secondary fw-semibold small mb-0">Mis Categorías · Ver Reportes →</p>
           </div>
         </a>
       </div>
@@ -146,8 +149,8 @@
 
     <div class="row mb-4 align-items-center">
       <div class="col-12 col-md-8">
-        <h2 class="fw-bold mb-1">📊 Centro de Reportes</h2>
-        <p class="text-secondary fs-6 mb-0">Estadísticas y análisis completo del inventario.</p>
+        <h2 class="fw-bold mb-1">📊 Mis Reportes</h2>
+        <p class="text-secondary fs-6 mb-0">Estadísticas y análisis de <strong class="text-white">tus propios productos</strong>.</p>
       </div>
       <div class="col-12 col-md-4 text-md-end mt-3 mt-md-0 d-flex gap-2 justify-content-md-end flex-wrap">
         <a href="{% url 'export_csv' %}" class="btn btn-success fw-semibold rounded-pill px-3 shadow"

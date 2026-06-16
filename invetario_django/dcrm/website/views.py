@@ -1,9 +1,9 @@
-#website/views.py
+# website/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 from .models import Product
 from .forms import SignUpForm, ProductForm
 from django.db.models import Sum, Count
@@ -14,7 +14,7 @@ import csv
 import io
 
 
-# ─── Helper de roles ─────────────────────────────────────────────────────────
+# ─── Helper de roles ──────────────────────────────────────────────────────────
 
 def is_admin(user):
     """
@@ -31,29 +31,43 @@ def is_admin(user):
 # ─── Vistas principales ───────────────────────────────────────────────────────
 
 def home(request):
+    """
+    Punto de entrada principal.
+    - Si el usuario es Admin → redirige al dashboard de administrador.
+    - Si es Operador → muestra SOLO sus propios productos.
+    - Si no está autenticado → muestra la pantalla de login.
+    """
     if request.method == 'POST' and 'action' not in request.POST:
-        # Autenticación de usuario normal
         username = request.POST.get('username')
         password = request.POST.get('password')
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
             messages.success(request, "¡Sesión iniciada correctamente!")
+            # Redirigir según rol
+            if is_admin(user):
+                return redirect('admin_dashboard')
             return redirect('home')
         else:
             messages.error(request, "¡Credenciales inválidas!")
             return redirect('home')
     else:
         if request.user.is_authenticated:
-            # Los administradores ven TODOS los productos; operadores también
-            # pero solo pueden editar/borrar los suyos (validado en vista y template)
-            products = Product.objects.all().order_by('-created_at')
-            total_products = products.count()
-            total_categories = Product.objects.values('category').distinct().count()
-            user_is_admin = is_admin(request.user)
+            # Admins no deben estar aquí
+            if is_admin(request.user):
+                return redirect('admin_dashboard')
 
-            # ── Datos de Reportes para SPA ──────────────────────────────────
-            total_units = products.aggregate(total=Sum('quantity'))['total'] or 0
+            # ── Dashboard del Operador: solo SUS productos ──────────────────
+            products = Product.objects.filter(user=request.user).order_by('-created_at')
+            total_products  = products.count()
+            total_units     = products.aggregate(total=Sum('quantity'))['total'] or 0
+            total_categories = products.values('category').distinct().count()
+
+            seven_days_ago = timezone.now() - timedelta(days=7)
+            recent_count   = products.filter(created_at__gte=seven_days_ago).count()
+            low_stock      = products.filter(quantity__lte=5).order_by('quantity')
+            top_stock      = products.order_by('-quantity')[:5]
+            recent_activity = products.order_by('-created_at')[:10]
 
             by_category = (
                 products.values('category')
@@ -61,42 +75,26 @@ def home(request):
                 .order_by('-total_qty')
             )
 
-            by_user = (
-                products.values('user__username')
-                .annotate(count=Count('id'), total_qty=Sum('quantity'))
-                .order_by('-count')
-            )
-
-            seven_days_ago = timezone.now() - timedelta(days=7)
-            recent_count = products.filter(created_at__gte=seven_days_ago).count()
-
-            low_stock = products.filter(quantity__lte=5).order_by('quantity')
-            top_stock = products.order_by('-quantity')[:5]
-            recent_activity = products.order_by('-created_at')[:10]
-
             chart_labels = [item['category'] for item in by_category]
-            chart_data = [item['total_qty'] for item in by_category]
+            chart_data   = [item['total_qty'] for item in by_category]
             chart_counts = [item['count'] for item in by_category]
-            # ─────────────────────────────────────────────────────────────────
 
             context = {
-                'products': products,
-                'total_products': total_products,
+                'products':        products,
+                'total_products':  total_products,
                 'total_categories': total_categories,
-                'user_is_admin': user_is_admin,
-                # Reportes
-                'total_units': total_units,
-                'by_category': by_category,
-                'by_user': by_user,
-                'recent_count': recent_count,
-                'low_stock': low_stock,
-                'top_stock': top_stock,
+                'user_is_admin':   False,
+                'total_units':     total_units,
+                'by_category':     by_category,
+                'by_user':         [],
+                'recent_count':    recent_count,
+                'low_stock':       low_stock,
+                'top_stock':       top_stock,
                 'recent_activity': recent_activity,
-                'chart_labels': chart_labels,
-                'chart_data': chart_data,
-                'chart_counts': chart_counts,
-                # Formulario de producto (vacío para el modal de agregar)
-                'product_form': ProductForm(),
+                'chart_labels':    chart_labels,
+                'chart_data':      chart_data,
+                'chart_counts':    chart_counts,
+                'product_form':    ProductForm(),
             }
             return render(request, 'home.html', context)
         else:
@@ -116,6 +114,8 @@ def logout_user(request):
 def register_user(request):
     """Vista de registro de nuevos usuarios usando SignUpForm."""
     if request.user.is_authenticated:
+        if is_admin(request.user):
+            return redirect('admin_dashboard')
         return redirect('home')
 
     if request.method == 'POST':
@@ -128,7 +128,6 @@ def register_user(request):
                 op_group = Group.objects.get(name='Operador')
                 user.groups.add(op_group)
             except Group.DoesNotExist:
-                # Si el grupo no existe aún, continuar sin error
                 pass
 
             username = form.cleaned_data.get('username')
@@ -146,6 +145,125 @@ def register_user(request):
     return render(request, 'register.html', {'form': form})
 
 
+# ─── Dashboard de Administrador ───────────────────────────────────────────────
+
+@login_required
+def admin_dashboard(request):
+    """
+    Dashboard exclusivo para Administradores.
+    Muestra todos los productos, estadísticas globales y gestión de usuarios.
+    Redirige a home si el usuario no es admin (403 implícito).
+    """
+    if not is_admin(request.user):
+        messages.error(request, "⛔ Acceso denegado. No tienes permisos de Administrador.")
+        return redirect('home')
+
+    # ── Todos los productos del sistema ──────────────────────────────────────
+    products = Product.objects.select_related('user').all().order_by('-created_at')
+    total_products   = products.count()
+    total_units      = products.aggregate(total=Sum('quantity'))['total'] or 0
+    total_categories = products.values('category').distinct().count()
+
+    seven_days_ago = timezone.now() - timedelta(days=7)
+    recent_count   = products.filter(created_at__gte=seven_days_ago).count()
+    low_stock      = products.filter(quantity__lte=5).order_by('quantity')
+    top_stock      = products.order_by('-quantity')[:5]
+    recent_activity = products.order_by('-created_at')[:10]
+
+    by_category = (
+        products.values('category')
+        .annotate(count=Count('id'), total_qty=Sum('quantity'))
+        .order_by('-total_qty')
+    )
+    by_user = (
+        products.values('user__username')
+        .annotate(count=Count('id'), total_qty=Sum('quantity'))
+        .order_by('-count')
+    )
+
+    chart_labels = [item['category'] for item in by_category]
+    chart_data   = [item['total_qty'] for item in by_category]
+    chart_counts = [item['count'] for item in by_category]
+
+    # ── Gestión de usuarios ───────────────────────────────────────────────────
+    admin_group = Group.objects.filter(name='Administrador').first()
+    all_users   = User.objects.prefetch_related('groups').order_by('username')
+
+    users_info = []
+    for u in all_users:
+        users_info.append({
+            'user':     u,
+            'is_admin': (
+                u.is_superuser
+                or u.is_staff
+                or (admin_group and u.groups.filter(pk=admin_group.pk).exists())
+            ),
+            'product_count': Product.objects.filter(user=u).count(),
+        })
+
+    context = {
+        'products':         products,
+        'total_products':   total_products,
+        'total_categories': total_categories,
+        'total_units':      total_units,
+        'total_users':      all_users.count(),
+        'recent_count':     recent_count,
+        'low_stock':        low_stock,
+        'top_stock':        top_stock,
+        'recent_activity':  recent_activity,
+        'by_category':      by_category,
+        'by_user':          by_user,
+        'chart_labels':     chart_labels,
+        'chart_data':       chart_data,
+        'chart_counts':     chart_counts,
+        'users_info':       users_info,
+        'product_form':     ProductForm(),
+        'user_is_admin':    True,
+    }
+    return render(request, 'admin_dashboard.html', context)
+
+
+@login_required
+def promote_user(request, pk):
+    """
+    Permite al Administrador promover o degradar el rol de un usuario.
+    POST alterna entre Administrador y Operador.
+    """
+    if not is_admin(request.user):
+        messages.error(request, "⛔ Acceso denegado.")
+        return redirect('home')
+
+    target_user = get_object_or_404(User, pk=pk)
+
+    # No permitir que un admin se quite sus propios permisos
+    if target_user == request.user:
+        messages.warning(request, "No puedes cambiar tu propio rol.")
+        return redirect('admin_dashboard')
+
+    # No modificar superusuarios
+    if target_user.is_superuser:
+        messages.warning(request, f"No se puede modificar al superusuario '{target_user.username}'.")
+        return redirect('admin_dashboard')
+
+    admin_group    = get_object_or_404(Group, name='Administrador')
+    operator_group = Group.objects.filter(name='Operador').first()
+
+    if target_user.groups.filter(name='Administrador').exists():
+        # Degradar a Operador
+        target_user.groups.remove(admin_group)
+        if operator_group:
+            target_user.groups.add(operator_group)
+        messages.success(request, f"✅ '{target_user.username}' ahora es Operador.")
+    else:
+        # Promover a Administrador
+        if operator_group:
+            target_user.groups.remove(operator_group)
+        target_user.groups.add(admin_group)
+        messages.success(request, f"👑 '{target_user.username}' ahora es Administrador.")
+
+    return redirect('admin_dashboard')
+
+
 # ─── CRUD de Productos ────────────────────────────────────────────────────────
 
 @login_required
@@ -153,7 +271,7 @@ def add_product(request):
     if request.method == 'POST':
         form = ProductForm(request.POST)
         if form.is_valid():
-            product = form.save(commit=False)
+            product      = form.save(commit=False)
             product.user = request.user
             product.save()
             messages.success(request, f"Producto '{product.name}' registrado correctamente.")
@@ -163,6 +281,9 @@ def add_product(request):
                 for error in error_list:
                     errores.append(error)
             messages.error(request, "Error de validación: " + " | ".join(errores))
+
+    if is_admin(request.user):
+        return redirect('admin_dashboard')
     return redirect('home')
 
 
@@ -170,9 +291,8 @@ def add_product(request):
 def delete_product(request, pk):
     """
     Elimina un producto.
-    Patrón Roles y Permisos:
-      - Administradores pueden eliminar CUALQUIER producto.
-      - Operadores solo pueden eliminar sus PROPIOS productos.
+    - Administradores pueden eliminar CUALQUIER producto.
+    - Operadores solo pueden eliminar sus PROPIOS productos.
     """
     if is_admin(request.user):
         product = get_object_or_404(Product, pk=pk)
@@ -182,6 +302,9 @@ def delete_product(request, pk):
     if request.method == 'POST':
         product.delete()
         messages.success(request, f"El producto '{product.name}' ha sido eliminado.")
+
+    if is_admin(request.user):
+        return redirect('admin_dashboard')
     return redirect('home')
 
 
@@ -189,9 +312,8 @@ def delete_product(request, pk):
 def edit_product(request, pk):
     """
     Edita un producto.
-    Patrón Roles y Permisos:
-      - Administradores pueden editar CUALQUIER producto.
-      - Operadores solo pueden editar sus PROPIOS productos.
+    - Administradores pueden editar CUALQUIER producto.
+    - Operadores solo pueden editar sus PROPIOS productos.
     """
     if is_admin(request.user):
         product = get_object_or_404(Product, pk=pk)
@@ -209,12 +331,17 @@ def edit_product(request, pk):
                 for error in error_list:
                     errores.append(error)
             messages.error(request, "Error de validación: " + " | ".join(errores))
+
+    if is_admin(request.user):
+        return redirect('admin_dashboard')
     return redirect('home')
 
 
 @login_required
 def reportes(request):
-    """Vista de reportes – mantiene la URL directa para compatibilidad."""
+    """Vista de reportes — redirige al dashboard correspondiente."""
+    if is_admin(request.user):
+        return redirect('admin_dashboard')
     return redirect('home')
 
 
@@ -223,7 +350,8 @@ def reportes(request):
 @login_required
 def export_csv(request):
     """
-    Exportar todo el inventario como CSV compatible con Excel (BOM UTF-8).
+    Exportar inventario como CSV compatible con Excel (BOM UTF-8).
+    Admins exportan todo; Operadores exportan solo sus productos.
     """
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = (
@@ -234,7 +362,11 @@ def export_csv(request):
     writer = csv.writer(response)
     writer.writerow(['Producto', 'Categoría', 'Cantidad', 'Registrado por', 'Fecha de Registro'])
 
-    products = Product.objects.all().order_by('-created_at')
+    if is_admin(request.user):
+        products = Product.objects.all().order_by('-created_at')
+    else:
+        products = Product.objects.filter(user=request.user).order_by('-created_at')
+
     for p in products:
         writer.writerow([
             p.name,
@@ -250,9 +382,8 @@ def export_csv(request):
 @login_required
 def export_pdf(request):
     """
-    Exportar inventario completo como PDF usando ReportLab.
-    Genera un reporte profesional con tabla, encabezado, resumen estadístico
-    y pie de página con fecha de generación.
+    Exportar inventario como PDF usando ReportLab.
+    Admins exportan todo; Operadores exportan solo sus productos.
     """
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
@@ -262,17 +393,14 @@ def export_pdf(request):
         Paragraph, Spacer, HRFlowable
     )
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+    from reportlab.lib.enums import TA_CENTER
 
     buffer = io.BytesIO()
-
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        rightMargin=2 * cm,
-        leftMargin=2 * cm,
-        topMargin=2 * cm,
-        bottomMargin=2 * cm,
+        rightMargin=2 * cm, leftMargin=2 * cm,
+        topMargin=2 * cm,   bottomMargin=2 * cm,
         title='Reporte de Inventario',
         author='Sistema de Inventario DCRM',
     )
@@ -280,57 +408,44 @@ def export_pdf(request):
     styles = getSampleStyleSheet()
     elements = []
 
-    # ── Estilos personalizados ───────────────────────────────────────────────
     color_primary   = colors.HexColor('#6366f1')
     color_secondary = colors.HexColor('#64748b')
     color_header_bg = colors.HexColor('#1e293b')
     color_row_alt   = colors.HexColor('#f8fafc')
     color_danger    = colors.HexColor('#ef4444')
     color_warning   = colors.HexColor('#f59e0b')
-    color_success   = colors.HexColor('#22c55e')
 
     title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Title'],
-        fontSize=22,
-        textColor=color_primary,
-        alignment=TA_CENTER,
-        spaceAfter=4,
-        fontName='Helvetica-Bold',
+        'CustomTitle', parent=styles['Title'],
+        fontSize=22, textColor=color_primary,
+        alignment=TA_CENTER, spaceAfter=4, fontName='Helvetica-Bold',
     )
     subtitle_style = ParagraphStyle(
-        'CustomSubtitle',
-        fontSize=10,
-        textColor=color_secondary,
-        alignment=TA_CENTER,
-        spaceAfter=20,
+        'CustomSubtitle', fontSize=10, textColor=color_secondary,
+        alignment=TA_CENTER, spaceAfter=20,
     )
     section_style = ParagraphStyle(
-        'SectionTitle',
-        fontSize=11,
-        textColor=color_header_bg,
-        fontName='Helvetica-Bold',
-        spaceBefore=14,
-        spaceAfter=6,
+        'SectionTitle', fontSize=11, textColor=color_header_bg,
+        fontName='Helvetica-Bold', spaceBefore=14, spaceAfter=6,
     )
     footer_style = ParagraphStyle(
-        'Footer',
-        fontSize=8,
-        textColor=color_secondary,
-        alignment=TA_CENTER,
+        'Footer', fontSize=8, textColor=color_secondary, alignment=TA_CENTER,
     )
 
-    # ── Encabezado ───────────────────────────────────────────────────────────
+    role_label = 'Administrador' if is_admin(request.user) else 'Operador'
     elements.append(Paragraph('📦 Reporte de Inventario', title_style))
     elements.append(Paragraph(
         f'Generado el {timezone.now().strftime("%d/%m/%Y a las %H:%M")} '
-        f'por {request.user.get_full_name() or request.user.username}',
+        f'por {request.user.get_full_name() or request.user.username} ({role_label})',
         subtitle_style
     ))
     elements.append(HRFlowable(width='100%', thickness=2, color=color_primary, spaceAfter=16))
 
-    # ── Resumen estadístico ──────────────────────────────────────────────────
-    products = Product.objects.all().order_by('-created_at')
+    if is_admin(request.user):
+        products = Product.objects.all().order_by('-created_at')
+    else:
+        products = Product.objects.filter(user=request.user).order_by('-created_at')
+
     total_units = products.aggregate(total=Sum('quantity'))['total'] or 0
     total_cats  = products.values('category').distinct().count()
     low_count   = products.filter(quantity__lte=5).count()
@@ -358,43 +473,32 @@ def export_pdf(request):
         ('INNERGRID',    (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
         ('TOPPADDING',   (0, 0), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('ROUNDEDCORNERS', [4]),
     ]))
     elements.append(summary_table)
     elements.append(Spacer(1, 0.6 * cm))
 
-    # ── Tabla principal de inventario ────────────────────────────────────────
     elements.append(Paragraph('Listado Completo de Productos', section_style))
-
     table_data = [['#', 'Producto', 'Categoría', 'Cantidad', 'Registrado por', 'Fecha']]
     for i, p in enumerate(products, 1):
-        qty_str = str(p.quantity)
         table_data.append([
-            str(i),
-            p.name,
-            p.category,
-            qty_str,
-            p.user.username,
-            p.created_at.strftime('%d/%m/%Y'),
+            str(i), p.name, p.category, str(p.quantity),
+            p.user.username, p.created_at.strftime('%d/%m/%Y'),
         ])
 
     col_widths = [1 * cm, 5 * cm, 3.8 * cm, 2.2 * cm, 3 * cm, 2.5 * cm]
-    inv_table = Table(table_data, colWidths=col_widths, repeatRows=1)
+    inv_table  = Table(table_data, colWidths=col_widths, repeatRows=1)
 
     row_count = len(table_data)
     table_styles = [
-        # Encabezado
         ('BACKGROUND',   (0, 0), (-1, 0), color_primary),
         ('TEXTCOLOR',    (0, 0), (-1, 0), colors.white),
         ('FONTNAME',     (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE',     (0, 0), (-1, 0), 9),
         ('ALIGN',        (0, 0), (-1, 0), 'CENTER'),
-        # Cuerpo
         ('FONTNAME',     (0, 1), (-1, -1), 'Helvetica'),
         ('FONTSIZE',     (0, 1), (-1, -1), 8),
         ('ALIGN',        (0, 1), (-1, -1), 'CENTER'),
         ('ALIGN',        (1, 1), (2, -1), 'LEFT'),
-        # Grid
         ('BOX',          (0, 0), (-1, -1), 0.5, colors.HexColor('#cbd5e1')),
         ('INNERGRID',    (0, 0), (-1, -1), 0.25, colors.HexColor('#e2e8f0')),
         ('TOPPADDING',   (0, 0), (-1, -1), 5),
@@ -402,13 +506,10 @@ def export_pdf(request):
         ('LEFTPADDING',  (0, 0), (-1, -1), 5),
         ('RIGHTPADDING', (0, 0), (-1, -1), 5),
     ]
-
-    # Filas alternas y colorear stock bajo
     for row_i in range(1, row_count):
         p = products[row_i - 1]
         bg = color_row_alt if row_i % 2 == 0 else colors.white
         table_styles.append(('BACKGROUND', (0, row_i), (-1, row_i), bg))
-        # Resaltar cantidades bajas
         if p.quantity == 0:
             table_styles.append(('TEXTCOLOR', (3, row_i), (3, row_i), color_danger))
             table_styles.append(('FONTNAME',  (3, row_i), (3, row_i), 'Helvetica-Bold'))
@@ -418,32 +519,16 @@ def export_pdf(request):
 
     inv_table.setStyle(TableStyle(table_styles))
     elements.append(inv_table)
-
-    # ── Leyenda de colores ───────────────────────────────────────────────────
-    elements.append(Spacer(1, 0.4 * cm))
-    legend_data = [['🔴 = Sin stock (0 uds)', '🟡 = Stock bajo (1-5 uds)', '⬛ = Stock normal (>5 uds)']]
-    legend_table = Table(legend_data, colWidths=[5.8 * cm] * 3)
-    legend_table.setStyle(TableStyle([
-        ('FONTSIZE',     (0, 0), (-1, -1), 7),
-        ('TEXTCOLOR',    (0, 0), (-1, -1), color_secondary),
-        ('ALIGN',        (0, 0), (-1, -1), 'CENTER'),
-    ]))
-    elements.append(legend_table)
-
-    # ── Pie de página ────────────────────────────────────────────────────────
     elements.append(Spacer(1, 0.8 * cm))
     elements.append(HRFlowable(width='100%', thickness=0.5, color=colors.HexColor('#e2e8f0')))
     elements.append(Spacer(1, 0.2 * cm))
     elements.append(Paragraph(
-        f'Sistema de Inventario DCRM  ·  Reporte generado automáticamente  ·  '
-        f'{timezone.now().strftime("%d/%m/%Y %H:%M")}',
+        f'Sistema de Inventario DCRM  ·  {timezone.now().strftime("%d/%m/%Y %H:%M")}',
         footer_style
     ))
 
-    # ── Construir y devolver el PDF ──────────────────────────────────────────
     doc.build(elements)
     buffer.seek(0)
-
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = (
         f'attachment; filename="inventario_{timezone.now().strftime("%Y%m%d_%H%M%S")}.pdf"'

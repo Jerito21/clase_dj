@@ -1,0 +1,754 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid mt-3 pb-5 px-4" id="admin-dashboard">
+
+  <!-- Mensajes globales -->
+  <div id="global-messages">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{% if 'error' in message.tags %}danger{% elif 'warning' in message.tags %}warning{% else %}success{% endif %} alert-dismissible fade show rounded-3 fw-medium py-2 border-0 shadow-sm mb-3" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+    <div>
+      <h1 class="fw-bold mb-1 fs-3">
+        <span style="background:linear-gradient(90deg,#f87171,#fb923c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+          👑 Panel de Administrador
+        </span>
+      </h1>
+      <p class="text-secondary mb-0 small">Vista global del sistema · Bienvenido, <strong class="text-white">{{ user.username }}</strong></p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{% url 'export_csv' %}" class="btn btn-success fw-semibold rounded-pill px-3 shadow-sm" title="Exportar CSV">
+        📥 CSV
+      </a>
+      <a href="{% url 'export_pdf' %}" class="btn btn-danger fw-semibold rounded-pill px-3 shadow-sm" title="Exportar PDF">
+        📄 PDF
+      </a>
+      <button class="btn fw-semibold rounded-pill px-3 shadow-sm text-white"
+              style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;"
+              data-bs-toggle="modal" data-bs-target="#addProductModal">
+        ➕ Nuevo Producto
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════ TABS SPA ═══════════ -->
+  <ul class="nav nav-pills mb-4 gap-2" id="adminTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active fw-semibold rounded-pill px-4"
+              id="tab-inventario" data-bs-toggle="pill" data-bs-target="#pane-inventario"
+              type="button" role="tab">
+        📦 Inventario
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link fw-semibold rounded-pill px-4"
+              id="tab-reportes" data-bs-toggle="pill" data-bs-target="#pane-reportes"
+              type="button" role="tab">
+        📊 Reportes
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link fw-semibold rounded-pill px-4"
+              id="tab-usuarios" data-bs-toggle="pill" data-bs-target="#pane-usuarios"
+              type="button" role="tab">
+        👥 Usuarios
+        <span class="badge bg-danger rounded-pill ms-1">{{ total_users }}</span>
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="adminTabsContent">
+
+    <!-- ══════════════════════════════════════════════════════════
+         PESTAÑA 1 — INVENTARIO GLOBAL
+         ══════════════════════════════════════════════════════════ -->
+    <div class="tab-pane fade show active" id="pane-inventario" role="tabpanel">
+
+      <!-- Stat Cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="stat-card h-100 text-center p-4 rounded-4 shadow-sm border-0 bg-dark-subtle hover-scale">
+            <div class="fs-1 mb-2">📦</div>
+            <h3 class="fw-bold text-primary mb-1">{{ total_products }}</h3>
+            <p class="text-secondary small mb-0 fw-semibold">Total Productos</p>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card h-100 text-center p-4 rounded-4 shadow-sm border-0 bg-dark-subtle hover-scale">
+            <div class="fs-1 mb-2">🏷️</div>
+            <h3 class="fw-bold text-info mb-1">{{ total_units }}</h3>
+            <p class="text-secondary small mb-0 fw-semibold">Unidades Totales</p>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card h-100 text-center p-4 rounded-4 shadow-sm border-0 bg-dark-subtle hover-scale">
+            <div class="fs-1 mb-2">👥</div>
+            <h3 class="fw-bold text-warning mb-1">{{ total_users }}</h3>
+            <p class="text-secondary small mb-0 fw-semibold">Usuarios Activos</p>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card h-100 text-center p-4 rounded-4 shadow-sm border-0 bg-dark-subtle hover-scale">
+            <div class="fs-1 mb-2">⚠️</div>
+            <h3 class="fw-bold text-danger mb-1">{{ low_stock|length }}</h3>
+            <p class="text-secondary small mb-0 fw-semibold">Stock Bajo</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de todos los productos -->
+      <div class="card shadow border-0 rounded-4 bg-dark-subtle overflow-hidden">
+        <div class="card-header bg-transparent border-secondary-subtle py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <h5 class="fw-semibold mb-0">📋 Inventario Global</h5>
+          <input type="search" id="admin-table-search"
+                 class="form-control form-control-sm bg-dark text-white border-secondary-subtle rounded-pill"
+                 style="max-width:220px;" placeholder="🔍 Buscar producto...">
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive" style="max-height:480px;overflow-y:auto;">
+            <table class="table table-hover table-borderless mb-0 align-middle text-nowrap" id="admin-inventory-table">
+              <thead class="table-dark-subtle text-secondary small text-uppercase sticky-top">
+                <tr>
+                  <th class="py-3 px-4 fw-medium">Producto</th>
+                  <th class="py-3 px-3 fw-medium">Categoría</th>
+                  <th class="py-3 px-3 fw-medium text-center">Cantidad</th>
+                  <th class="py-3 px-3 fw-medium">Registrado por</th>
+                  <th class="py-3 px-3 fw-medium">Fecha</th>
+                  <th class="py-3 px-4 fw-medium text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="admin-inventory-tbody">
+                {% for p in products %}
+                <tr class="border-top border-secondary-subtle">
+                  <td class="py-3 px-4 fw-medium">{{ p.name }}</td>
+                  <td class="py-3 px-3 text-secondary">{{ p.category }}</td>
+                  <td class="py-3 px-3 text-center">
+                    <span class="badge rounded-pill fs-6 {% if p.quantity == 0 %}bg-danger{% elif p.quantity <= 5 %}bg-warning text-dark{% else %}bg-primary{% endif %}">
+                      {{ p.quantity }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-3">
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                           style="width:26px;height:26px;font-size:0.7rem;background:linear-gradient(135deg,#6366f1,#38bdf8);">
+                        {{ p.user.username|first|upper }}
+                      </div>
+                      <span class="text-secondary">{{ p.user.username }}</span>
+                    </div>
+                  </td>
+                  <td class="py-3 px-3 text-secondary">{{ p.created_at|date:"d M Y, H:i" }}</td>
+                  <td class="py-3 px-4 text-end">
+                    <button type="button"
+                            class="btn btn-sm btn-outline-warning rounded-pill px-3 me-1"
+                            data-bs-toggle="modal"
+                            data-bs-target="#editProductModal{{ p.pk }}">
+                      ✏️ Editar
+                    </button>
+                    <form method="post" action="{% url 'delete_product' p.pk %}" style="display:inline;"
+                          onsubmit="return confirm('¿Eliminar permanentemente {{ p.name }}?');">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                        🗑️ Borrar
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="6" class="py-5 text-center text-secondary">
+                    No hay productos en el sistema.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div><!-- /pane-inventario -->
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         PESTAÑA 2 — REPORTES GLOBALES
+         ══════════════════════════════════════════════════════════ -->
+    <div class="tab-pane fade" id="pane-reportes" role="tabpanel">
+
+      <!-- Stats Reportes -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="stat-card h-100 text-center p-4 rounded-4 shadow-sm bg-dark-subtle hover-scale">
+            <div class="fs-1 mb-2">📦</div>
+            <h4 class="fw-bold text-primary mb-1">{{ total_products }}</h4>
+            <p class="text-secondary small mb-0 fw-semibold">Total Productos</p>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card h-100 text-center p-4 rounded-4 shadow-sm bg-dark-subtle hover-scale">
+            <div class="fs-1 mb-2">🏷️</div>
+            <h4 class="fw-bold text-info mb-1">{{ total_units }}</h4>
+            <p class="text-secondary small mb-0 fw-semibold">Unidades Totales</p>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card h-100 text-center p-4 rounded-4 shadow-sm bg-dark-subtle hover-scale">
+            <div class="fs-1 mb-2">🗂️</div>
+            <h4 class="fw-bold text-warning mb-1">{{ total_categories }}</h4>
+            <p class="text-secondary small mb-0 fw-semibold">Categorías</p>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card h-100 text-center p-4 rounded-4 shadow-sm bg-dark-subtle hover-scale">
+            <div class="fs-1 mb-2">🆕</div>
+            <h4 class="fw-bold text-success mb-1">{{ recent_count }}</h4>
+            <p class="text-secondary small mb-0 fw-semibold">Últimos 7 Días</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos -->
+      <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+          <div class="card shadow border-0 rounded-4 bg-dark-subtle overflow-hidden">
+            <div class="card-header bg-transparent border-secondary-subtle py-3 px-4">
+              <h5 class="fw-semibold mb-0">📊 Unidades por Categoría</h5>
+            </div>
+            <div class="card-body p-4">
+              <canvas id="adminBarChart" height="260"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="card shadow border-0 rounded-4 bg-dark-subtle overflow-hidden">
+            <div class="card-header bg-transparent border-secondary-subtle py-3 px-4">
+              <h5 class="fw-semibold mb-0">🍩 Distribución por Categoría</h5>
+            </div>
+            <div class="card-body p-4 d-flex align-items-center justify-content-center">
+              <canvas id="adminDoughnutChart" height="240"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Por categoría y por usuario -->
+      <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+          <div class="card shadow border-0 rounded-4 bg-dark-subtle overflow-hidden">
+            <div class="card-header bg-transparent border-secondary-subtle py-3 px-4">
+              <h5 class="fw-semibold mb-0">🗂️ Desglose por Categoría</h5>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover table-borderless mb-0 align-middle">
+                  <thead class="table-dark-subtle text-secondary small text-uppercase">
+                    <tr>
+                      <th class="py-3 px-4 fw-medium">Categoría</th>
+                      <th class="py-3 px-3 fw-medium text-center">Productos</th>
+                      <th class="py-3 px-3 fw-medium text-center">Unidades</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for item in by_category %}
+                    <tr class="border-top border-secondary-subtle">
+                      <td class="py-3 px-4 fw-medium">{{ item.category }}</td>
+                      <td class="py-3 px-3 text-center"><span class="badge bg-primary rounded-pill">{{ item.count }}</span></td>
+                      <td class="py-3 px-3 text-center"><span class="badge bg-info rounded-pill">{{ item.total_qty }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="py-4 text-center text-secondary">No hay datos.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card shadow border-0 rounded-4 bg-dark-subtle overflow-hidden">
+            <div class="card-header bg-transparent border-secondary-subtle py-3 px-4">
+              <h5 class="fw-semibold mb-0">👥 Registros por Usuario</h5>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover table-borderless mb-0 align-middle">
+                  <thead class="table-dark-subtle text-secondary small text-uppercase">
+                    <tr>
+                      <th class="py-3 px-4 fw-medium">Usuario</th>
+                      <th class="py-3 px-3 fw-medium text-center">Productos</th>
+                      <th class="py-3 px-3 fw-medium text-center">Unidades</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for item in by_user %}
+                    <tr class="border-top border-secondary-subtle">
+                      <td class="py-3 px-4 fw-medium">
+                        <div class="d-flex align-items-center gap-2">
+                          <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
+                               style="width:28px;height:28px;font-size:0.75rem;background:linear-gradient(135deg,#6366f1,#38bdf8);">
+                            {{ item.user__username|first|upper }}
+                          </div>
+                          {{ item.user__username }}
+                        </div>
+                      </td>
+                      <td class="py-3 px-3 text-center"><span class="badge bg-primary rounded-pill">{{ item.count }}</span></td>
+                      <td class="py-3 px-3 text-center"><span class="badge bg-info rounded-pill">{{ item.total_qty }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="py-4 text-center text-secondary">No hay datos.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stock Bajo y Top 5 -->
+      <div class="row g-4">
+        <div class="col-lg-6">
+          <div class="card shadow border-0 rounded-4 bg-dark-subtle overflow-hidden">
+            <div class="card-header bg-transparent border-secondary-subtle py-3 px-4 d-flex align-items-center">
+              <h5 class="fw-semibold mb-0">⚠️ Stock Bajo</h5>
+              <span class="badge bg-danger rounded-pill ms-auto">{{ low_stock|length }}</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive" style="max-height:260px;overflow-y:auto;">
+                <table class="table table-hover table-borderless mb-0 align-middle">
+                  <thead class="table-dark-subtle text-secondary small text-uppercase sticky-top">
+                    <tr>
+                      <th class="py-3 px-4 fw-medium">Producto</th>
+                      <th class="py-3 px-3 fw-medium">Categoría</th>
+                      <th class="py-3 px-3 fw-medium">Responsable</th>
+                      <th class="py-3 px-3 fw-medium text-center">Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for p in low_stock %}
+                    <tr class="border-top border-secondary-subtle">
+                      <td class="py-3 px-4 fw-medium">{{ p.name }}</td>
+                      <td class="py-3 px-3 text-secondary">{{ p.category }}</td>
+                      <td class="py-3 px-3 text-secondary">{{ p.user.username }}</td>
+                      <td class="py-3 px-3 text-center">
+                        <span class="badge rounded-pill {% if p.quantity == 0 %}bg-danger{% elif p.quantity <= 2 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                          {{ p.quantity }}
+                        </span>
+                      </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="py-4 text-center text-success">✅ Todo el stock es suficiente.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card shadow border-0 rounded-4 bg-dark-subtle overflow-hidden">
+            <div class="card-header bg-transparent border-secondary-subtle py-3 px-4">
+              <h5 class="fw-semibold mb-0">🏆 Top 5 Mayor Stock</h5>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover table-borderless mb-0 align-middle">
+                  <thead class="table-dark-subtle text-secondary small text-uppercase">
+                    <tr>
+                      <th class="py-3 px-4 fw-medium">#</th>
+                      <th class="py-3 px-3 fw-medium">Producto</th>
+                      <th class="py-3 px-3 fw-medium">Categoría</th>
+                      <th class="py-3 px-3 fw-medium text-center">Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for p in top_stock %}
+                    <tr class="border-top border-secondary-subtle">
+                      <td class="py-3 px-4">
+                        {% if forloop.counter == 1 %}🥇
+                        {% elif forloop.counter == 2 %}🥈
+                        {% elif forloop.counter == 3 %}🥉
+                        {% else %}{{ forloop.counter }}{% endif %}
+                      </td>
+                      <td class="py-3 px-3 fw-medium">{{ p.name }}</td>
+                      <td class="py-3 px-3 text-secondary">{{ p.category }}</td>
+                      <td class="py-3 px-3 text-center"><span class="badge bg-success rounded-pill fs-6">{{ p.quantity }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="py-4 text-center text-secondary">No hay productos.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /pane-reportes -->
+
+
+    <!-- ══════════════════════════════════════════════════════════
+         PESTAÑA 3 — GESTIÓN DE USUARIOS
+         ══════════════════════════════════════════════════════════ -->
+    <div class="tab-pane fade" id="pane-usuarios" role="tabpanel">
+
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card shadow border-0 rounded-4 bg-dark-subtle overflow-hidden">
+            <div class="card-header bg-transparent border-secondary-subtle py-3 px-4 d-flex align-items-center">
+              <h5 class="fw-semibold mb-0">👥 Gestión de Usuarios del Sistema</h5>
+              <span class="badge ms-2 rounded-pill" style="background:rgba(239,68,68,0.2);color:#f87171;border:1px solid rgba(239,68,68,0.3);">
+                {{ total_users }} usuarios
+              </span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover table-borderless mb-0 align-middle">
+                  <thead class="table-dark-subtle text-secondary small text-uppercase">
+                    <tr>
+                      <th class="py-3 px-4 fw-medium">Usuario</th>
+                      <th class="py-3 px-3 fw-medium">Email</th>
+                      <th class="py-3 px-3 fw-medium text-center">Productos</th>
+                      <th class="py-3 px-3 fw-medium text-center">Rol Actual</th>
+                      <th class="py-3 px-4 fw-medium text-center">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for info in users_info %}
+                    <tr class="border-top border-secondary-subtle">
+                      <td class="py-3 px-4">
+                        <div class="d-flex align-items-center gap-3">
+                          <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                               style="width:36px;height:36px;font-size:0.9rem;background:{% if info.is_admin %}linear-gradient(135deg,#ef4444,#f97316){% else %}linear-gradient(135deg,#6366f1,#38bdf8){% endif %};">
+                            {{ info.user.username|first|upper }}
+                          </div>
+                          <div>
+                            <div class="fw-semibold text-white">{{ info.user.username }}</div>
+                            <div class="text-secondary" style="font-size:0.78rem;">
+                              {% if info.user.is_superuser %}⚡ Superusuario
+                              {% elif info.user == user %}(tú)
+                              {% endif %}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="py-3 px-3 text-secondary small">{{ info.user.email|default:"—" }}</td>
+                      <td class="py-3 px-3 text-center">
+                        <span class="badge bg-primary rounded-pill">{{ info.product_count }}</span>
+                      </td>
+                      <td class="py-3 px-3 text-center">
+                        {% if info.is_admin %}
+                          <span class="badge rounded-pill fw-semibold px-3 py-2"
+                                style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);">
+                            👑 Administrador
+                          </span>
+                        {% else %}
+                          <span class="badge rounded-pill fw-semibold px-3 py-2"
+                                style="background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);">
+                            🔧 Operador
+                          </span>
+                        {% endif %}
+                      </td>
+                      <td class="py-3 px-4 text-center">
+                        {% if info.user == user %}
+                          <span class="text-secondary small fst-italic">Tu cuenta</span>
+                        {% elif info.user.is_superuser %}
+                          <span class="text-secondary small fst-italic">—</span>
+                        {% else %}
+                          <form method="post" action="{% url 'promote_user' info.user.pk %}"
+                                onsubmit="return confirm('¿Cambiar el rol de {{ info.user.username }}?');">
+                            {% csrf_token %}
+                            {% if info.is_admin %}
+                              <button type="submit"
+                                      class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                                      title="Degradar a Operador">
+                                ⬇️ Hacer Operador
+                              </button>
+                            {% else %}
+                              <button type="submit"
+                                      class="btn btn-sm rounded-pill px-3 fw-semibold text-white"
+                                      style="background:linear-gradient(135deg,#ef4444,#f97316);border:none;"
+                                      title="Promover a Administrador">
+                                👑 Hacer Admin
+                              </button>
+                            {% endif %}
+                          </form>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                      <td colspan="5" class="py-5 text-center text-secondary">No hay usuarios registrados.</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Información de roles -->
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="card border-0 rounded-4 bg-dark-subtle shadow-sm p-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="fs-2">👑</div>
+              <h6 class="fw-bold mb-0" style="color:#f87171;">Administrador</h6>
+            </div>
+            <ul class="text-secondary small mb-0 ps-3">
+              <li>Ve y gestiona <strong class="text-white">TODOS</strong> los productos del sistema</li>
+              <li>Puede editar y eliminar cualquier producto</li>
+              <li>Accede a reportes globales y exportaciones</li>
+              <li>Puede promover/degradar el rol de usuarios</li>
+              <li>Acceso al panel Django Admin (si es staff)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card border-0 rounded-4 bg-dark-subtle shadow-sm p-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="fs-2">🔧</div>
+              <h6 class="fw-bold mb-0" style="color:#818cf8;">Operador</h6>
+            </div>
+            <ul class="text-secondary small mb-0 ps-3">
+              <li>Solo ve <strong class="text-white">SUS PROPIOS</strong> productos registrados</li>
+              <li>Puede agregar, editar y eliminar sus propios productos</li>
+              <li>Accede a reportes de su inventario personal</li>
+              <li>No puede ver productos de otros usuarios</li>
+              <li>No tiene acceso al panel de administración</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div><!-- /pane-usuarios -->
+
+  </div><!-- /tab-content -->
+</div><!-- /container -->
+
+
+<!-- ══════════════ MODALES DE EDICIÓN ══════════════ -->
+
+<!-- Modal: Nuevo Producto -->
+<div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true" data-bs-theme="dark">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark border-secondary-subtle rounded-4 shadow-lg">
+      <div class="modal-header border-secondary-subtle py-3 px-4">
+        <h5 class="modal-title fw-bold" id="addProductModalLabel">➕ Nuevo Producto</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'add_product' %}" id="form-add-product" novalidate>
+        {% csrf_token %}
+        <div class="modal-body px-4 py-4">
+          <div class="mb-3">
+            <label for="add-name" class="form-label text-secondary fw-semibold">Nombre del Producto</label>
+            <input type="text" name="name" id="add-name"
+                   class="form-control bg-dark text-white border-secondary-subtle shadow-sm"
+                   required minlength="2" maxlength="200"
+                   pattern="[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s\-\.]+"
+                   title="Solo letras, números, espacios, guiones y puntos."
+                   placeholder="Ej. Teclado Mecánico" autocomplete="off">
+            <div class="invalid-feedback" id="add-name-feedback"></div>
+            <div class="valid-feedback">¡Se ve bien!</div>
+          </div>
+          <div class="mb-3">
+            <label for="add-category" class="form-label text-secondary fw-semibold">Categoría</label>
+            <input type="text" name="category" id="add-category"
+                   class="form-control bg-dark text-white border-secondary-subtle shadow-sm"
+                   required maxlength="100"
+                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
+                   title="Solo letras y espacios."
+                   placeholder="Ej. Periféricos" autocomplete="off">
+            <div class="invalid-feedback" id="add-category-feedback"></div>
+            <div class="valid-feedback">¡Se ve bien!</div>
+          </div>
+          <div class="mb-3">
+            <label for="add-quantity" class="form-label text-secondary fw-semibold">Cantidad en Stock</label>
+            <input type="number" name="quantity" id="add-quantity"
+                   class="form-control bg-dark text-white border-secondary-subtle shadow-sm"
+                   required min="0" max="999999" value="0">
+            <div class="invalid-feedback">Ingresa una cantidad válida.</div>
+            <div class="valid-feedback">¡Correcto!</div>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary-subtle py-3 px-4">
+          <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn rounded-pill px-4 shadow fw-semibold text-white"
+                  style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border:none;">
+            💾 Guardar Producto
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modales de Edición por Producto -->
+{% for p in products %}
+<div class="modal fade" id="editProductModal{{ p.pk }}" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark border-secondary-subtle rounded-4 shadow-lg">
+      <div class="modal-header border-secondary-subtle py-3 px-4">
+        <h5 class="modal-title fw-bold">✏️ Editar: {{ p.name }}</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'edit_product' p.pk %}" novalidate>
+        {% csrf_token %}
+        <div class="modal-body px-4 py-4">
+          <div class="mb-3">
+            <label class="form-label text-secondary fw-semibold">Nombre del Producto</label>
+            <input type="text" name="name"
+                   class="form-control bg-dark text-white border-secondary-subtle shadow-sm"
+                   required minlength="2" maxlength="200"
+                   pattern="[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s\-\.]+"
+                   value="{{ p.name }}" autocomplete="off">
+            <div class="invalid-feedback"></div>
+            <div class="valid-feedback">¡Se ve bien!</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-secondary fw-semibold">Categoría</label>
+            <input type="text" name="category"
+                   class="form-control bg-dark text-white border-secondary-subtle shadow-sm"
+                   required maxlength="100"
+                   pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+"
+                   value="{{ p.category }}" autocomplete="off">
+            <div class="invalid-feedback"></div>
+            <div class="valid-feedback">¡Se ve bien!</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-secondary fw-semibold">Cantidad en Stock</label>
+            <input type="number" name="quantity"
+                   class="form-control bg-dark text-white border-secondary-subtle shadow-sm"
+                   required min="0" max="999999" value="{{ p.quantity }}">
+            <div class="invalid-feedback">Cantidad inválida.</div>
+            <div class="valid-feedback">¡Correcto!</div>
+          </div>
+          <div class="alert rounded-3 py-2 px-3 small border-0"
+               style="background:rgba(99,102,241,0.1);color:#a5b4fc;">
+            📌 Registrado por <strong>{{ p.user.username }}</strong> el {{ p.created_at|date:"d M Y" }}
+          </div>
+        </div>
+        <div class="modal-footer border-secondary-subtle py-3 px-4">
+          <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-warning rounded-pill px-4 shadow fw-semibold">
+            💾 Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+
+<!-- ══════════════ SCRIPTS ══════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  // ── Buscador de tabla ──────────────────────────────────────────────────────
+  document.getElementById('admin-table-search').addEventListener('input', function () {
+    const term = this.value.toLowerCase();
+    document.querySelectorAll('#admin-inventory-tbody tr').forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
+    });
+  });
+
+  // ── Datos de gráficos desde Django ────────────────────────────────────────
+  const chartLabels = {{ chart_labels|safe }};
+  const chartData   = {{ chart_data|safe }};
+  const chartCounts = {{ chart_counts|safe }};
+
+  const PALETTE = [
+    '#6366f1','#38bdf8','#34d399','#f59e0b','#ef4444',
+    '#a855f7','#f97316','#14b8a6','#e879f9','#84cc16',
+  ];
+
+  // ── Bar Chart ─────────────────────────────────────────────────────────────
+  const barCtx = document.getElementById('adminBarChart');
+  if (barCtx && chartLabels.length) {
+    new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: chartLabels,
+        datasets: [{
+          label: 'Unidades',
+          data: chartData,
+          backgroundColor: PALETTE.map(c => c + 'cc'),
+          borderColor: PALETTE,
+          borderWidth: 2,
+          borderRadius: 8,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              afterLabel: (ctx) => `Productos: ${chartCounts[ctx.dataIndex]}`,
+            },
+          },
+        },
+        scales: {
+          x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.1)' } },
+          y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.1)' } },
+        },
+      },
+    });
+  }
+
+  // ── Doughnut Chart ────────────────────────────────────────────────────────
+  const dCtx = document.getElementById('adminDoughnutChart');
+  if (dCtx && chartLabels.length) {
+    new Chart(dCtx, {
+      type: 'doughnut',
+      data: {
+        labels: chartLabels,
+        datasets: [{
+          data: chartData,
+          backgroundColor: PALETTE.map(c => c + 'bb'),
+          borderColor: PALETTE,
+          borderWidth: 2,
+          hoverOffset: 8,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#94a3b8', padding: 16, font: { size: 12 } },
+          },
+        },
+        cutout: '65%',
+      },
+    });
+  }
+</script>
+
+<style>
+  .stat-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .hover-scale:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.3) !important; }
+  .nav-pills .nav-link {
+    color: rgba(255,255,255,0.6);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: all 0.2s;
+  }
+  .nav-pills .nav-link:hover { color: #fff; background: rgba(255,255,255,0.07); }
+  .nav-pills .nav-link.active {
+    background: linear-gradient(135deg, #ef4444, #f97316) !important;
+    border-color: transparent;
+    color: #fff !important;
+  }
+</style>
+
+{% endblock %}

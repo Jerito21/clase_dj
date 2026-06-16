@@ -1,8 +1,9 @@
 {% load static %}
 <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background: linear-gradient(90deg,#0f172a 0%,#1e293b 100%); border-bottom: 1px solid rgba(255,255,255,0.07);">
-  <div class="container">
+  <div class="container-fluid px-4">
     <!-- Brand -->
-    <a href="{% url 'home' %}" class="navbar-brand d-flex align-items-center spa-brand" data-spa-section="inventario">
+    <a href="{% if user.is_authenticated %}{% if user.is_staff or user.is_superuser %}{% url 'admin_dashboard' %}{% else %}{% url 'home' %}{% endif %}{% else %}{% url 'home' %}{% endif %}"
+       class="navbar-brand d-flex align-items-center">
       <span class="fs-3 me-2">📦</span>
       <span class="fw-bolder fst-normal fs-5" style="background: linear-gradient(90deg,#818cf8,#38bdf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">
         Sistema de Inventario
@@ -16,46 +17,69 @@
     </button>
 
     <div class="collapse navbar-collapse" id="navbarMain">
-      <!-- SPA Links (solo visibles si está autenticado) -->
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-medium" id="spa-nav-links">
+      <!-- Nav links -->
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-medium">
         {% if user.is_authenticated %}
-          <li class="nav-item">
-            <a class="nav-link spa-link px-3 py-2 rounded-3 mx-1 active"
-               id="nav-inventario"
-               href="#"
-               data-spa-section="inventario">
-              <span class="me-1">📦</span> Inventario
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link spa-link px-3 py-2 rounded-3 mx-1"
-               id="nav-reportes"
-               href="#"
-               data-spa-section="reportes">
-              <span class="me-1">📊</span> Reportes
-            </a>
-          </li>
-          {% if user.is_staff or user.is_superuser %}
-          <li class="nav-item">
-            <a class="nav-link px-3 py-2 rounded-3 mx-1"
-               href="/admin/"
-               target="_blank"
-               style="color:rgba(248,113,113,0.85)!important;"
-               title="Panel de administración Django">
-              <span class="me-1">⚙️</span> Admin
-            </a>
-          </li>
+
+          {% if user.is_staff or user.is_superuser or user.groups.all.0.name == 'Administrador' %}
+            <!-- LINKS ADMINISTRADOR -->
+            <li class="nav-item">
+              <a class="nav-link nav-pill-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %} px-3 py-2 rounded-3 mx-1"
+                 href="{% url 'admin_dashboard' %}">
+                <span class="me-1">📦</span> Inventario
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link nav-pill-link px-3 py-2 rounded-3 mx-1"
+                 href="{% url 'admin_dashboard' %}#"
+                 onclick="event.preventDefault(); document.getElementById('tab-reportes').click();">
+                <span class="me-1">📊</span> Reportes
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link nav-pill-link px-3 py-2 rounded-3 mx-1"
+                 href="{% url 'admin_dashboard' %}#"
+                 onclick="event.preventDefault(); document.getElementById('tab-usuarios').click();">
+                <span class="me-1">👥</span> Usuarios
+              </a>
+            </li>
+            {% if user.is_staff or user.is_superuser %}
+            <li class="nav-item">
+              <a class="nav-link px-3 py-2 rounded-3 mx-1"
+                 href="/admin/" target="_blank"
+                 style="color:rgba(248,113,113,0.85)!important;"
+                 title="Panel Django Admin">
+                <span class="me-1">⚙️</span> Admin
+              </a>
+            </li>
+            {% endif %}
+
+          {% else %}
+            <!-- LINKS OPERADOR -->
+            <li class="nav-item">
+              <a class="nav-link nav-pill-link active px-3 py-2 rounded-3 mx-1"
+                 id="nav-inventario" href="#" data-spa-section="inventario">
+                <span class="me-1">📦</span> Inventario
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link nav-pill-link px-3 py-2 rounded-3 mx-1"
+                 id="nav-reportes" href="#" data-spa-section="reportes">
+                <span class="me-1">📊</span> Mis Reportes
+              </a>
+            </li>
           {% endif %}
+
         {% endif %}
       </ul>
 
-      <!-- Actions -->
+      <!-- Perfil de usuario -->
       <div class="d-flex align-items-center gap-2">
         {% if user.is_authenticated %}
           <span class="navbar-text me-2 d-flex align-items-center text-white">
-            <!-- Avatar circular con inicial -->
+            <!-- Avatar -->
             <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-2 fw-bold flex-shrink-0"
-                 style="width:34px;height:34px;font-size:0.85rem;background:linear-gradient(135deg,#6366f1,#38bdf8);">
+                 style="width:34px;height:34px;font-size:0.85rem;background:{% if user.is_staff or user.is_superuser or user.groups.all.0.name == 'Administrador' %}linear-gradient(135deg,#ef4444,#f97316){% else %}linear-gradient(135deg,#6366f1,#38bdf8){% endif %};">
               {{ user.username|first|upper }}
             </div>
             <!-- Username + badge de rol -->
@@ -89,16 +113,16 @@
 </nav>
 
 <style>
-  .spa-link {
+  .nav-pill-link {
     color: rgba(255,255,255,0.65) !important;
     transition: all 0.2s ease;
     font-size: 0.9rem;
   }
-  .spa-link:hover {
+  .nav-pill-link:hover {
     color: #fff !important;
     background: rgba(255,255,255,0.08) !important;
   }
-  .spa-link.active {
+  .nav-pill-link.active {
     color: #fff !important;
     background: rgba(99,102,241,0.25) !important;
     border-left: 3px solid #818cf8;
