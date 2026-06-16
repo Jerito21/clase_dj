@@ -1,0 +1,24 @@
+# Entorno virtual
+env/
+venv/
+ENV/
+
+# Archivos de configuración locales con credenciales sensibles
+.env
+dcrm/.env
+
+# Pycache y compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+**/__pycache__/
+
+# Base de datos local SQLite si se genera
+*.sqlite3
+db.sqlite3
+
+# IDEs y editores
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -35,6 +35,17 @@
               <span class="me-1">📊</span> Reportes
             </a>
           </li>
+          {% if user.is_staff or user.is_superuser %}
+          <li class="nav-item">
+            <a class="nav-link px-3 py-2 rounded-3 mx-1"
+               href="/admin/"
+               target="_blank"
+               style="color:rgba(248,113,113,0.85)!important;"
+               title="Panel de administración Django">
+              <span class="me-1">⚙️</span> Admin
+            </a>
+          </li>
+          {% endif %}
         {% endif %}
       </ul>
 
@@ -42,11 +53,26 @@
       <div class="d-flex align-items-center gap-2">
         {% if user.is_authenticated %}
           <span class="navbar-text me-2 d-flex align-items-center text-white">
-            <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-2 fw-bold"
+            <!-- Avatar circular con inicial -->
+            <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-2 fw-bold flex-shrink-0"
                  style="width:34px;height:34px;font-size:0.85rem;background:linear-gradient(135deg,#6366f1,#38bdf8);">
               {{ user.username|first|upper }}
             </div>
-            <span class="d-none d-md-inline text-secondary small">{{ user.username }}</span>
+            <!-- Username + badge de rol -->
+            <div class="d-none d-md-flex flex-column lh-1">
+              <span class="text-white small fw-semibold">{{ user.username }}</span>
+              {% if user.is_staff or user.is_superuser or user.groups.all.0.name == 'Administrador' %}
+                <span class="mt-1 px-2 py-0 rounded-pill fw-semibold"
+                      style="font-size:0.62rem;background:rgba(239,68,68,0.18);color:#f87171;border:1px solid rgba(239,68,68,0.3);">
+                  👑 Administrador
+                </span>
+              {% else %}
+                <span class="mt-1 px-2 py-0 rounded-pill fw-semibold"
+                      style="font-size:0.62rem;background:rgba(99,102,241,0.18);color:#818cf8;border:1px solid rgba(99,102,241,0.3);">
+                  🔧 Operador
+                </span>
+              {% endif %}
+            </div>
           </span>
           <a href="{% url 'logout' %}" class="btn btn-outline-danger fw-semibold rounded-pill px-3 shadow-sm" style="font-size:0.85rem;">
             Cerrar sesión

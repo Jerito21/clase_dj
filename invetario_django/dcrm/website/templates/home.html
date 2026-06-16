@@ -103,6 +103,7 @@
                   <td class="py-3 px-3 text-secondary">{{ p.user.username }}</td>
                   <td class="py-3 px-3 text-secondary">{{ p.created_at|date:"d M Y, H:i" }}</td>
                   <td class="py-3 px-4 text-end">
+                    {% if p.user == user or user_is_admin %}
                     <button type="button"
                             class="btn btn-sm btn-outline-warning rounded-pill px-3 me-1"
                             data-bs-toggle="modal"
@@ -116,6 +117,9 @@
                         🗑️ Borrar
                       </button>
                     </form>
+                    {% else %}
+                    <span class="text-secondary small fst-italic opacity-50">—</span>
+                    {% endif %}
                   </td>
                 </tr>
                 {% endfor %}
@@ -145,9 +149,14 @@
         <h2 class="fw-bold mb-1">📊 Centro de Reportes</h2>
         <p class="text-secondary fs-6 mb-0">Estadísticas y análisis completo del inventario.</p>
       </div>
-      <div class="col-12 col-md-4 text-md-end mt-3 mt-md-0">
-        <a href="{% url 'export_csv' %}" class="btn btn-success fw-semibold rounded-pill px-4 shadow">
-          📥 Exportar CSV
+      <div class="col-12 col-md-4 text-md-end mt-3 mt-md-0 d-flex gap-2 justify-content-md-end flex-wrap">
+        <a href="{% url 'export_csv' %}" class="btn btn-success fw-semibold rounded-pill px-3 shadow"
+           title="Exportar inventario en formato CSV (compatible con Excel)">
+          📥 CSV
+        </a>
+        <a href="{% url 'export_pdf' %}" class="btn btn-danger fw-semibold rounded-pill px-3 shadow"
+           title="Exportar inventario como reporte PDF">
+          📄 PDF
         </a>
       </div>
     </div>
@@ -471,8 +480,9 @@
   </div>
 </div>
 
-<!-- Modales de Edición por Producto -->
+<!-- Modales de Edición por Producto (solo se renderizan si el usuario tiene acceso) -->
 {% for p in products %}
+{% if p.user == user or user_is_admin %}
 <div class="modal fade" id="editProductModal{{ p.pk }}" tabindex="-1" aria-hidden="true" data-bs-theme="dark">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content bg-dark border-secondary-subtle rounded-4 shadow-lg">
@@ -529,6 +539,7 @@
     </div>
   </div>
 </div>
+{% endif %}
 {% endfor %}
 
 
