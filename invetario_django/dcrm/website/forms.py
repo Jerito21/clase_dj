@@ -1,10 +1,17 @@
 #website/forms.py
+"""
+Formularios del sistema de inventario.
+Implementa el patrón ModelForm (DRY) para generación automática
+de formularios validados desde los modelos, con expresiones regulares
+tanto a nivel de validador Python como de atributos HTML5.
+"""
 # Importación de librerías y funciones para la creación de formularios en Django
 from django import forms  # para crear formularios en Django y sus campos.
 from django.contrib.auth.forms import UserCreationForm  # formulario de registro basado en el modelo User de Django.
 from django.contrib.auth.models import User  # modelo de usuario de Django.
 from django.core.validators import RegexValidator  # para validar campos con expresiones regulares.
 from .models import Product
+
 
 
 # ─── Validadores con Expresiones Regulares ────────────────────────────────────
