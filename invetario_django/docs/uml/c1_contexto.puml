@@ -1,0 +1,27 @@
+@startuml C1_Contexto
+!theme plain
+title C1 — Diagrama de Contexto del Sistema\nSistema de Inventario DCRM
+
+skinparam backgroundColor #1e293b
+skinparam defaultFontColor #f1f5f9
+skinparam rectangleBorderColor #6366f1
+skinparam actorBorderColor #38bdf8
+
+actor "Operador\n(Usuario Básico)" as Op #6366f1
+actor "Administrador\n(Usuario Senior)" as Ad #ef4444
+
+rectangle "Sistema de\nInventario DCRM\n[Django Web App]" as Sistema #1e293b
+
+database "Base de Datos\nMySQL\n[inventario_db]" as BD #334155
+
+Op --> Sistema : Gestiona sus productos\nVe solo su inventario
+Ad --> Sistema : Gestiona todo el inventario\nAdministra usuarios y roles
+Sistema --> BD : Lee y escribe\ndatos de inventario
+
+note bottom of Sistema
+  Acceso vía navegador web
+  Puerto 8000 (desarrollo)
+  HTTP / HTTPS (producción)
+end note
+
+@enduml

@@ -1,0 +1,112 @@
+@startuml C4_Codigo
+!theme plain
+title C4 — Diagrama de Código (Clases principales)\nModelos, Formularios y Vistas
+
+skinparam backgroundColor #1e293b
+skinparam defaultFontColor #f1f5f9
+skinparam classBorderColor #6366f1
+skinparam classBackgroundColor #1e293b
+
+' ──────────────────────────────────────────
+' MODELOS
+' ──────────────────────────────────────────
+class "django.contrib.auth.models.User" as DjangoUser {
+  + id : BigAutoField (PK)
+  + username : CharField
+  + email : EmailField
+  + password : CharField (hashed)
+  + is_staff : BooleanField
+  + is_superuser : BooleanField
+  + groups : ManyToMany(Group)
+}
+
+class "Product" as ProductModel {
+  + id : BigAutoField (PK)
+  + name : CharField(200)
+  + category : CharField(100)
+  + quantity : IntegerField
+  + user : ForeignKey(User)
+  + created_at : DateTimeField(auto)
+  --
+  + __str__() : str
+}
+
+class "Group" as DjangoGroup {
+  + name : CharField
+  ' 'Administrador' | 'Operador'
+}
+
+' ──────────────────────────────────────────
+' FORMULARIOS
+' ──────────────────────────────────────────
+class "SignUpForm" as SignUpFormClass {
+  + email : EmailField
+  + first_name : CharField [solo_letras]
+  + last_name : CharField [solo_letras]
+  + username : CharField [nombre_usuario_valido]
+  + password1 : CharField
+  + password2 : CharField
+  --
+  + clean_email() : str
+  + clean_username() : str
+}
+
+class "ProductForm" as ProductFormClass {
+  + name : CharField [nombre_producto_valido]
+  + category : CharField [categoria_valida]
+  + quantity : IntegerField [min=0]
+  --
+  + clean_name() : str
+  + clean_quantity() : int
+}
+
+class "UserCreationForm" as Django_UCF {
+  ' Clase base Django
+}
+
+class "ModelForm" as Django_MF {
+  ' Clase base Django
+}
+
+' ──────────────────────────────────────────
+' VISTAS (funciones principales)
+' ──────────────────────────────────────────
+class "views.py (funciones)" as Views {
+  + is_admin(user) : bool  <<Facade>>
+  + home(request) : HttpResponse
+  + register_user(request) : HttpResponse  <<Observer>>
+  + admin_dashboard(request) : HttpResponse
+  + promote_user(request, pk) : HttpResponse
+  + add_product(request) : HttpResponse
+  + edit_product(request, pk) : HttpResponse
+  + delete_product(request, pk) : HttpResponse
+  + export_csv(request) : HttpResponse
+  + export_pdf(request) : HttpResponse
+}
+
+' ──────────────────────────────────────────
+' RELACIONES
+' ──────────────────────────────────────────
+ProductModel "muchos" --> "1" DjangoUser : user (FK / propietario)
+DjangoUser "muchos" --> "muchos" DjangoGroup : groups (M2M)
+
+SignUpFormClass --|> Django_UCF : hereda
+ProductFormClass --|> Django_MF : hereda (Meta: model=Product)
+
+ProductFormClass ..> ProductModel : valida y guarda
+SignUpFormClass ..> DjangoUser : valida y crea
+
+Views ..> ProductModel : ORM: .filter() .create() .save() .delete()
+Views ..> DjangoUser : ORM: .prefetch_related()
+Views ..> SignUpFormClass : instancia en register_user()
+Views ..> ProductFormClass : instancia en add/edit_product()
+
+note bottom of Views
+  Patron Facade: is_admin() encapsula
+  3 verificaciones de rol en 1 llamada.
+  
+  Patron Observer: register_user()
+  asigna grupo 'Operador' automaticamente.
+end note
+
+@enduml

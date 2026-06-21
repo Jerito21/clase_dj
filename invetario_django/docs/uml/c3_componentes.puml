@@ -1,0 +1,54 @@
+@startuml C3_Componentes
+!theme plain
+title C3 — Diagrama de Componentes\nAplicación Django "website"
+
+skinparam backgroundColor #1e293b
+skinparam defaultFontColor #f1f5f9
+skinparam componentBorderColor #6366f1
+
+package "website/ (App Django)" {
+
+  component "models.py\n[Modelo de Datos]\nProduct, User(Django)" as Models #1e40af
+
+  component "forms.py\n[Formularios Validados]\nSignUpForm, ProductForm\nRegexValidator" as Forms #0f766e
+
+  component "views.py\n[Controladores]\nhome(), admin_dashboard()\nadd/edit/delete_product()\nexport_csv(), export_pdf()\nis_admin() [Facade]" as Views #7c3aed
+
+  component "urls.py\n[Enrutador Interno]\n10 rutas mapeadas" as URLs #b45309
+
+  component "admin.py\n[Panel Administrativo]\nProductAdmin registrado" as Admin #b91c1c
+
+  package "templates/" {
+    component "base.html\n[Template Method]" as Base #374151
+    component "home.html\n[SPA Operador]" as Home #374151
+    component "admin_dashboard.html\n[SPA Admin con tabs]" as AdminDash #374151
+    component "register.html\n[Formulario Registro]" as Register #374151
+    component "navbar.html\n[Nav dinámica por rol]" as Navbar #374151
+  }
+
+  package "management/commands/" {
+    component "setup_groups.py\n[Command Pattern]\nCrea grupos Administrador\ny Operador en BD" as SetupGroups #166534
+  }
+
+}
+
+URLs --> Views : Despacha requests
+Views --> Models : Consulta y modifica datos\n(ORM Django)
+Views --> Forms : Instancia y valida
+Views --> Base : render(request, template, ctx)
+Base --> Navbar : {% include %}
+Base --> Home : {% block content %}
+Base --> AdminDash : {% block content %}
+Base --> Register : {% block content %}
+Forms --> Models : ModelForm hereda de Product/User
+Admin --> Models : Registra ProductAdmin
+SetupGroups ..> Models : Crea grupos en Auth
+
+note right of Views
+  Patrones aplicados:
+  - Facade: is_admin()
+  - Observer: asignacion rol
+  - Repository: ORM abstrae BD
+end note
+
+@enduml

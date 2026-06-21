@@ -1,0 +1,42 @@
+@startuml C2_Contenedores
+!theme plain
+title C2 — Diagrama de Contenedores\nSistema de Inventario DCRM
+
+skinparam backgroundColor #1e293b
+skinparam defaultFontColor #f1f5f9
+skinparam componentBorderColor #6366f1
+
+actor "Operador" as Op #6366f1
+actor "Administrador" as Ad #ef4444
+
+package "Sistema de Inventario DCRM" {
+
+  component "Navegador Web\n[HTML5 + Bootstrap 5 Local\n+ JavaScript Vanilla\n+ Chart.js]" as Frontend #334155
+
+  component "Aplicación Django\n[Python 3.11 / Django 5]\nPatrón MVT\nContenedor: dcrm/" as Backend #1e40af
+
+  component "Motor de Plantillas\n[Django Templates\n+ Jinja2-like syntax]" as Templates #0f4c81
+
+  database "MySQL 8.0\n[Base de Datos]\nBase: inventario_db" as MySQL #1a2e44
+
+  component "Archivos Estáticos\n[Bootstrap CSS/JS local\ncustom.css]" as Static #374151
+
+}
+
+Op --> Frontend : Usa navegador
+Ad --> Frontend : Usa navegador
+Frontend --> Backend : HTTP Requests\nPOST (CSRF protegido)\nGET
+Backend --> Templates : Renderiza HTML
+Templates --> Frontend : HTML dinámico
+Backend --> MySQL : ORM Django\n(mysqlclient)
+Frontend --> Static : Carga Bootstrap\nCSS y JS locales
+
+note right of Backend
+  Capas de seguridad:
+  1. Sesiones y cookies
+  2. @login_required + roles
+  3. Validación Regex
+  4. Headers HTTP seguros
+end note
+
+@enduml
