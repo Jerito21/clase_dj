@@ -41,3 +41,66 @@ class ProductModelTest(TestCase):
         )
         expected_str = "Ratón Óptico (50 uds.) — Periféricos"
         self.assertEqual(str(product), expected_str)
+
+
+class SecurityAndRoleTest(TestCase):
+    """Pruebas unitarias para la lógica de seguridad y roles (is_admin)."""
+
+    def setUp(self):
+        # Crear grupos de prueba
+        self.admin_group = Group.objects.create(name='Administrador')
+        self.operator_group = Group.objects.create(name='Operador')
+
+        # Crear usuarios para cada rol
+        self.admin_user = User.objects.create_user(
+            username='admin1',
+            email='admin1@example.com',
+            password='password123'
+        )
+        self.admin_user.groups.add(self.admin_group)
+
+        self.operator_user = User.objects.create_user(
+            username='operador2',
+            email='op2@example.com',
+            password='password123'
+        )
+        self.operator_user.groups.add(self.operator_group)
+
+        self.regular_user = User.objects.create_user(
+            username='regular',
+            email='reg@example.com',
+            password='password123'
+        )
+
+        self.staff_user = User.objects.create_user(
+            username='staff1',
+            email='staff@example.com',
+            password='password123',
+            is_staff=True
+        )
+
+        self.superuser = User.objects.create_superuser(
+            username='super',
+            email='super@example.com',
+            password='password123'
+        )
+
+    def test_is_admin_helper(self):
+        """Verifica que la función helper is_admin reconozca correctamente los roles."""
+        from website.views import is_admin
+
+        # Administrador por pertenecer al grupo 'Administrador'
+        self.assertTrue(is_admin(self.admin_user))
+
+        # Administrador por ser staff
+        self.assertTrue(is_admin(self.staff_user))
+
+        # Administrador por ser superusuario
+        self.assertTrue(is_admin(self.superuser))
+
+        # Operador no es administrador
+        self.assertFalse(is_admin(self.operator_user))
+
+        # Usuario regular sin roles no es administrador
+        self.assertFalse(is_admin(self.regular_user))
+
