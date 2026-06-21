@@ -85,6 +85,17 @@ DATABASES = {
 
 LOGIN_URL = 'home'
 
+# ── Configuración de mensajes ──────────────────────────────────────────────────
+# Mapea los niveles de mensajes de Django a clases CSS de Bootstrap
+from django.contrib.messages import constants as messages_constants
+MESSAGE_TAGS = {
+    messages_constants.DEBUG:   'secondary',
+    messages_constants.INFO:    'info',
+    messages_constants.SUCCESS: 'success',
+    messages_constants.WARNING: 'warning',
+    messages_constants.ERROR:   'danger',
+}
+
 
 # ── Validación de contraseñas ──────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
