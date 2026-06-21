@@ -78,8 +78,8 @@
         {% if user.is_authenticated %}
           <span class="navbar-text me-2 d-flex align-items-center text-white">
             <!-- Avatar -->
-            <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-2 fw-bold flex-shrink-0"
-                 style="width:34px;height:34px;font-size:0.85rem;background:{% if user.is_staff or user.is_superuser or user.groups.all.0.name == 'Administrador' %}linear-gradient(135deg,#ef4444,#f97316){% else %}linear-gradient(135deg,#6366f1,#38bdf8){% endif %};">
+            <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-2 fw-bold flex-shrink-0 {% if user.is_staff or user.is_superuser or user.groups.all.0.name == 'Administrador' %}avatar-admin{% else %}avatar-operator{% endif %}"
+                 style="width:34px;height:34px;font-size:0.85rem;">
               {{ user.username|first|upper }}
             </div>
             <!-- Username + badge de rol -->
@@ -126,5 +126,11 @@
     color: #fff !important;
     background: rgba(99,102,241,0.25) !important;
     border-left: 3px solid #818cf8;
+  }
+  .avatar-admin {
+    background: linear-gradient(135deg, #ef4444, #f97316);
+  }
+  .avatar-operator {
+    background: linear-gradient(135deg, #6366f1, #38bdf8);
   }
 </style>
