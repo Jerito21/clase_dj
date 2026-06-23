@@ -35,12 +35,12 @@ La aplicación implementa el patrón **MVT (Model-View-Template)** de Django, co
 | Validaciones con Expresiones Regulares | ✅ Backend (forms.py) + Frontend (JS) |
 | Seguridad en campos críticos | ✅ RegexValidator + clean() en forms |
 | 4 capas de seguridad | ✅ Ver sección de Seguridad |
-| Historial de commits en GitHub (≥20) | ⚠️ Actualmente: 10 commits (completar) |
+| Historial de commits en GitHub (≥20) | ✅ Completado |
 | Archivo README.md | ✅ Este archivo |
 | Archivo requirements.txt | ✅ Existe |
-| Diagramas PlantUML (C1 al C4) | ✅ Ver `/docs/uml/` |
+| Diagramas PlantUML (C1 al C4) | ✅ Existe |
 | Patrones de Diseño documentados | ✅ Ver sección correspondiente |
-| Bitácoras de trabajo (8 en total) | ✅ Ver `/docs/bitacoras/` |
+| Bitácoras de trabajo (8 en total) | ✅ Existe |
 
 ---
 
